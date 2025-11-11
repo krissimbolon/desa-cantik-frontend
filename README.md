@@ -84,25 +84,25 @@ Desa Cantik Frontend adalah aplikasi web berbasis React untuk **Sistem Informasi
 
 ## Fitur Utama
 
-1. ** Authentication & Authorization**
+1. **Authentication & Authorization**
    - JWT-based login via backend API
    - Role-based access: Admin BPS, Perangkat Desa, Masyarakat
 
-2. ** Manajemen Desa**
+2. **Manajemen Desa**
    - CRUD data desa (Nonongan Selatan, Rindingbatu)
    - Profil desa dengan demografi lengkap
 
-3. ** Modul Statistik**
+3. **Modul Statistik**
    - Dashboard statistik per desa
    - Visualisasi indikator (grafik & tabel)
    - Input dan kelola data statistik
 
-4. ** Peta Interaktif**
+4. **Peta Interaktif**
    - Visualisasi batas wilayah desa (GeoJSON)
    - Peta tematik dengan indikator statistik
    - Layer control untuk berbagai dataset
 
-5. ** Manajemen Publikasi**
+5. **Manajemen Publikasi**
    - Upload dokumen publikasi (PDF, Excel)
    - Browser publikasi desa
    - Integrasi dengan Spatie Media Library (backend)
