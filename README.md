@@ -1,146 +1,601 @@
-# Sistem Informasi Desa Cantik (Frontend)
+# Desa Cantik Frontend
 
-Repositori ini berisi kode frontend untuk project **Sistem Informasi Desa Cinta Statistik (Cantik)** BPS Toraja Utara.
+**Sistem Informasi Desa Cinta Statistik - Frontend Application**
 
-Project ini dibangun sebagai Single-Page Application (SPA) menggunakan React (Vite) dan akan berinteraksi dengan backend (Laravel) melalui RESTful API, sesuai dengan rancangan arsitektur 3-lapis (3-Tier Architecture).
+![Status](https://img.shields.io/badge/status-in%20development-yellow)
+![React](https://img.shields.io/badge/React-19.1.1-blue)
+![Vite](https://img.shields.io/badge/Vite-7.2.2-purple)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.18-cyan)
 
-## Teknologi Utama
+---
 
-- **Framework**: React 19+ dengan Next.js
-- **Styling**: Tailwind CSS v4
-- **Komponen UI**: shadcn/ui
-- **Routing**: Next.js App Router
-- **Arsitektur**: Decoupled (Terpisah dari Backend)
-- **Build Tool**: Turbopack (default Next.js 16)
+## Daftar Isi
 
-## Panduan Instalasi (Untuk Anggota Tim)
+- [Tentang Proyek](#tentang-proyek)
+- [Tim Pengembang](#tim-pengembang)
+- [Tech Stack](#tech-stack)
+- [Fitur Utama](#fitur-utama)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Struktur Proyek](#struktur-proyek)
+- [Environment Variables](#environment-variables)
+- [Development Workflow](#development-workflow)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
-Project starter ini sudah dikonfigurasi sepenuhnya oleh Lead Dev. Anda **TIDAK PERLU** menjalankan `npx tailwindcss init` atau `npx shadcn@latest init`.
+---
 
-Cukup ikuti tiga langkah sederhana ini:
+## Tentang Proyek
 
-### 1. Clone Project
+Desa Cantik Frontend adalah aplikasi web berbasis React untuk **Sistem Informasi Desa Cinta Statistik (Desa Cantik)** BPS Kabupaten Toraja Utara. Aplikasi ini menyediakan antarmuka pengguna untuk:
 
-Salin repositori dan masuk ke dalam folder:
+- **Pengelolaan Data Desa** (Nonongan Selatan & Rindingbatu)
+- **Visualisasi Data Statistik** dengan grafik interaktif
+- **Peta Tematik** menggunakan Leaflet.js dan GeoJSON
+- **Dashboard Role-Based** untuk Admin BPS, Perangkat Desa, dan Masyarakat
+- **Upload dan Kelola Publikasi** dokumentasi desa
 
-\`\`\`bash
-git clone https://git.stis.ac.id/rpl-lancarnyaman
-cd desa-cantik-frontend-develop
-\`\`\`
+**Backend API:** [desa-cantik-api](https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-api)
 
-### 2. Install Semua Dependency
+---
 
-Pastikan Anda memiliki Node.js (versi 18+). Perintah ini akan menginstal semua yang kita butuhkan (React, Next.js, Tailwind, React Router, dll.):
+## Tim Pengembang
 
-\`\`\`bash
+**Tim 4  Kelas 3SI1**
+
+| Nama | NIM | Role |
+|------|-----|------|
+| Teguh Christianto Simbolon | 222313403 | Project Lead, Backend |
+| Amir Syaifudin | 222312968 | Frontend Lead |
+| Anggita Cristin Meylani | 222312982 | Frontend |
+| Nyimas Virna Salsa Lestari Risqia | 222313307 | Frontend |
+| Alif Zakiansyah As Syauqi | 222312958 | Backend Lead |
+| Ahmad Adib Husaini Al Munawwar | 222312948 | Backend | 
+
+
+---
+
+## Tech Stack
+
+### Core
+- **[React](https://react.dev)** 19.1.1 - UI Library
+- **[Vite](https://vitejs.dev)** 7.2.2 - Build Tool & Dev Server
+- **[React Router](https://reactrouter.com/)** 7.9.5 - Routing
+
+### Styling
+- **[TailwindCSS](https://tailwindcss.com/)** 3.4.18 - Utility-first CSS
+- **[shadcn/ui](https://ui.shadcn.com/)** - Component Library
+- **[Lucide React](https://lucide.dev/)** - Icon Library
+- **[tailwindcss-animate](https://www.npmjs.com/package/tailwindcss-animate)** - Animation utilities
+
+### Data Fetching & Maps
+- **[Axios](https://axios-http.com/)** - HTTP Client
+- **[Leaflet](https://leafletjs.com/)** - Interactive Maps
+- **[React-Leaflet](https://react-leaflet.js.org/)** - React wrapper for Leaflet
+
+### Development Tools
+- **[ESLint](https://eslint.org/)** 9.36.0 - Linting
+- **[PostCSS](https://postcss.org/)** - CSS Processing
+- **[Autoprefixer](https://github.com/postcss/autoprefixer)** - CSS Vendor Prefixing
+
+---
+
+## Fitur Utama
+
+1. **Authentication & Authorization**
+   - JWT-based login via backend API
+   - Role-based access: Admin BPS, Perangkat Desa, Masyarakat
+
+2. **Manajemen Desa**
+   - CRUD data desa (Nonongan Selatan, Rindingbatu)
+   - Profil desa dengan demografi lengkap
+
+3. **Modul Statistik**
+   - Dashboard statistik per desa
+   - Visualisasi indikator (grafik & tabel)
+   - Input dan kelola data statistik
+
+4. **Peta Interaktif**
+   - Visualisasi batas wilayah desa (GeoJSON)
+   - Peta tematik dengan indikator statistik
+   - Layer control untuk berbagai dataset
+
+5. **Manajemen Publikasi**
+   - Upload dokumen publikasi (PDF, Excel)
+   - Browser publikasi desa
+   - Integrasi dengan Spatie Media Library (backend)
+
+---
+
+## Prerequisites
+
+Sebelum memulai, pastikan sudah terinstall:
+
+- **Node.js** >= 20.x ([Download](https://nodejs.org/))
+- **npm** >= 10.x (included with Node.js)
+- **Git** ([Download](https://git-scm.com/))
+- **Backend API** running di `http://localhost:8000` (lihat [desa-cantik-api README](https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-api/-/blob/develop/README.md))
+
+**Cek versi:**
+```bash
+node --version  # v20.x atau lebih baru
+npm --version   # v10.x atau lebih baru
+```
+
+---
+
+## Quick Start
+
+### 1. Clone Repository
+
+```bash
+git clone https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-frontend.git
+cd desa-cantik-frontend
+```
+
+### 2. Checkout Develop Branch
+
+```bash
+git checkout develop
+git pull origin develop
+```
+
+### 3. Install Dependencies
+
+```bash
 npm install
-\`\`\`
+```
 
-### 3. Jalankan Project
+**Installed packages:**
+- React 19 + React DOM
+- React Router v7
+- Axios, Leaflet, React-Leaflet
+- TailwindCSS, shadcn/ui components
+- ESLint, Vite plugins
 
-Jalankan server development lokal:
+### 4. Configure Environment
 
-\`\`\`bash
+```bash
+# Create .env file
+cp .env.example .env
+
+# Edit .env
+nano .env
+```
+
+**Minimal configuration:**
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+### 5. Start Development Server
+
+```bash
 npm run dev
-\`\`\`
+```
 
-Buka browser Anda dan akses: **http://localhost:3000/**
+**Output:**
+```
+  VITE v7.2.2  ready in 2246 ms
 
-Jika tampilan awal React muncul, Anda siap bekerja!
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+```
 
-## Cara Bekerja
+**Open browser:** `http://localhost:5173`
 
-### Menambahkan Komponen (shadcn/ui)
+---
 
-Anda tidak perlu menjalankan init. Gunakan perintah `add` untuk menambahkan komponen baru yang Anda butuhkan:
+## Struktur Proyek
 
-\`\`\`bash
-# Untuk menambahkan tombol
-npx shadcn@latest add button
+```
+desa-cantik-frontend/
+├── public/                    # Static assets
+├── src/
+│   ├── assets/               # Images, fonts
+│   │   ├── fonts/
+│   │   └── images/
+│   │
+│   ├── components/           # Reusable UI components
+│   │   └── shared/
+│   │       ├── Footer.jsx
+│   │       ├── Navbar.jsx
+│   │       └── Sidebar.jsx
+│   │
+│   ├── hooks/                # Custom React hooks
+│   │
+│   ├── layouts/              # Layout components
+│   │   ├── DashboardLayout.jsx
+│   │   └── MainLayout.jsx
+│   │
+│   ├── lib/                  # Utility functions
+│   │   └── utils.js
+│   │
+│   ├── pages/                # Page components (routes)
+│   │   ├── admin/
+│   │   │   ├── DashboardAdmin.jsx
+│   │   │   └── KelolaDesa.jsx
+│   │   ├── desa/
+│   │   │   ├── DashboardDesa.jsx
+│   │   │   └── KelolaDataStatistik.jsx
+│   │   └── public/
+│   │       ├── Home.jsx
+│   │       └── Login.jsx
+│   │
+│   ├── routes/               # React Router configuration
+│   │   └── index.jsx
+│   │
+│   ├── services/             # API service layer
+│   │   ├── authApi.js
+│   │   └── dataApi.js
+│   │
+│   ├── App.css
+│   ├── App.jsx               # Root component
+│   ├── index.css             # Global styles
+│   └── main.jsx              # Entry point
+│
+├── .env.example              # Environment template
+├── .gitignore
+├── components.json           # shadcn/ui config
+├── eslint.config.js          # ESLint rules
+├── index.html                # HTML template
+├── jsconfig.json             # Path aliases
+├── package.json              # Dependencies
+├── postcss.config.js         # PostCSS config
+├── README.md
+├── tailwind.config.js        # TailwindCSS config
+└── vite.config.js            # Vite configuration
+```
 
-# Untuk menambahkan modal
-npx shadcn@latest add dialog
+---
 
-# Untuk menambahkan input form
-npx shadcn@latest add input
-\`\`\`
+## Environment Variables
 
-Komponen akan otomatis ditambahkan ke `src/components/ui/`.
+Create `.env` in project root (gitignored):
 
-### Struktur Folder
+```env
+# Backend API Base URL
+VITE_API_URL=http://localhost:8000/api
 
-Kami menggunakan struktur folder standar untuk memisahkan logika. Fokus utama Anda akan ada di folder `src/`:
+# Optional: App Name
+VITE_APP_NAME="Desa Cantik"
+```
 
-\`\`\`
-src/
-├── assets/         (Gambar, font, dan aset statis)
-├── components/
-│   ├── shared/     (Navbar, Sidebar, dan komponen yang digunakan di banyak tempat)
-│   └── ui/         (Komponen shadcn, jangan diedit manual)
-├── hooks/          (Custom hooks, misal: useAuth)
-├── layouts/        (Pembungkus halaman, misal: DashboardLayout)
-├── pages/          (Halaman utama, dibagi per-aktor)
-│   ├── public/     (Halaman publik: login, register, dll.)
-│   ├── admin/      (Halaman admin)
-│   └── desa/       (Halaman desa)
-├── routes/         (Konfigurasi routing)
-├── services/       (Tempat logic API call menggunakan fetch atau axios)
-├── types/          (TypeScript interfaces dan types)
-├── utils/          (Fungsi utility dan helper)
-└── lib/            (Folder utilitas umum)
-\`\`\`
+**Environment Files:**
+- `.env` - Local development (gitignored)
+- `.env.example` - Template (committed to repo)
+- Production: Configure in hosting platform (Vercel/Netlify env vars)
 
-### Build untuk Production
+**Accessing in code:**
+```javascript
+const API_URL = import.meta.env.VITE_API_URL;
+```
 
-\`\`\`bash
+---
+
+## Development Workflow
+
+### Daily Workflow (Individual Developer)
+
+**Morning - Sync with Team:**
+```bash
+# 1. Switch to develop
+git checkout develop
+
+# 2. Pull latest changes
+git pull origin develop
+
+# 3. Create feature branch
+git checkout -b feature/auth-ui
+
+# 4. Start coding!
+npm run dev
+```
+
+**Evening - Commit & Push:**
+```bash
+# 1. Check changes
+git status
+
+# 2. Add files
+git add .
+
+# 3. Commit with conventional message
+git commit -m "feat(auth): add login form component with validation"
+
+# 4. Push feature branch
+git push origin feature/auth-ui
+```
+
+### Conventional Commit Messages
+
+Format: `<type>(<scope>): <description>`
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Formatting (no code change)
+- `refactor`: Code restructuring
+- `test`: Adding tests
+- `chore`: Maintenance
+
+**Examples:**
+```bash
+git commit -m "feat(map): integrate Leaflet for desa boundaries"
+git commit -m "fix(login): resolve token refresh issue"
+git commit -m "docs(readme): update installation steps"
+```
+
+### Create Merge Request
+
+1. **Push feature branch** (as shown above)
+
+2. **Go to GitLab:**
+   - Navigate to: `https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-frontend/-/merge_requests/new`
+
+3. **Fill MR Form:**
+   ```markdown
+   Title: feat: Add authentication UI components
+
+   ## Changes
+   - Created LoginForm component with validation
+   - Integrated Axios for API calls
+   - Added error handling
+
+   ## Testing
+   - [x] Form validation working
+   - [x] API integration tested with backend
+   - [x] Responsive on mobile
+
+   ## Screenshots
+   [Attach screenshots]
+   ```
+
+4. **Set:**
+   - Source: `feature/auth-ui`
+   - Target: `develop`
+   - Assignee: Team Lead
+   - Reviewers: 2 teammates
+
+5. **Get Approval** → Merge → Delete feature branch
+
+---
+
+## Available Scripts
+
+```bash
+# Start development server (HMR enabled)
+npm run dev
+
+# Build for production
 npm run build
-npm run start
-\`\`\`
 
-## Alur Kerja Git (Git Workflow)
+# Preview production build
+npm run preview
 
-Ikuti workflow berikut untuk menjaga kualitas kode:
+# Run linter
+npm run lint
 
-1. **Pull Latest Changes**: Selalu tarik (pull) dari `develop` sebelum memulai tugas baru:
-   \`\`\`bash
-   git pull origin develop
-   \`\`\`
+# Format code (if Prettier configured)
+npm run format
+```
 
-2. **Buat Branch Baru**: Buat branch baru untuk setiap task/feature:
-   \`\`\`bash
-   git checkout -b feature/halaman-login
-   git checkout -b fix/bug-header
-   \`\`\`
+**Production Build Output:**
+- Creates `/dist` folder
+- Optimized, minified assets
+- Ready for deployment
 
-3. **Commit Berkala**: Lakukan commit secara berkala dengan pesan yang jelas:
-   \`\`\`bash
-   git commit -m "feat: tambah halaman login dengan validasi"
-   git commit -m "fix: perbaiki bug pada responsive navbar"
-   git commit -m "style: update styling button primary"
-   \`\`\`
+---
 
-4. **Push dan Pull Request**: Push branch Anda dan buat Pull Request (PR) ke `develop` untuk di-review:
-   \`\`\`bash
-   git push origin feature/halaman-login
-   \`\`\`
+## Testing
 
-### Konvensi Commit
+### Manual Testing Checklist
 
-Gunakan prefix berikut pada pesan commit Anda:
-- `feat:` - Fitur baru
-- `fix:` - Bug fix
-- `style:` - Perubahan styling
-- `refactor:` - Refactoring kode
-- `docs:` - Perubahan dokumentasi
-- `test:` - Penambahan atau perbaikan test
+**Before committing:**
+- [ ] Component renders without errors
+- [ ] Responsive on mobile (DevTools)
+- [ ] API calls working (Network tab)
+- [ ] No console errors
+- [ ] Lint passing (`npm run lint`)
 
-⚠️ **PENTING**: **DILARANG push langsung ke `develop` atau `main`**. Selalu gunakan Pull Request.
+### Integration Testing
 
-## Scripts Tersedia
+**Test with Backend API:**
+```bash
+# Terminal 1: Backend API
+cd ../desa-cantik-api
+docker-compose up -d
 
-\`\`\`bash
-npm run dev      # Jalankan development server
-npm run build    # Build untuk production
-npm run start    # Jalankan production server
-npm run lint     # Jalankan ESLint
-\`\`\`
+# Terminal 2: Frontend
+cd desa-cantik-frontend
+npm run dev
+
+# Test endpoints:
+# - Login: http://localhost:5173/login
+# - Dashboard: http://localhost:5173/admin/dashboard
+# - Map: http://localhost:5173/desa/peta
+```
+
+### Automated Testing (TODO)
+
+**Future implementation:**
+- Unit tests: Jest + React Testing Library
+- E2E tests: Cypress or Playwright
+- Target coverage: ≥ 70%
+
+---
+
+## Troubleshooting
+
+### Issue: `npm install` fails
+
+**Solution:**
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Delete node_modules
+rm -rf node_modules package-lock.json
+
+# Reinstall
+npm install
+```
+
+---
+
+### Issue: Port 5173 already in use
+
+**Solution:**
+```bash
+# Kill process on port 5173 (Windows)
+netstat -ano | findstr :5173
+taskkill /PID <PID> /F
+
+# Or change port in vite.config.js:
+export default defineConfig({
+  server: { port: 3000 }
+})
+```
+
+---
+
+### Issue: API CORS errors
+
+**Symptoms:**
+```
+Access to XMLHttpRequest blocked by CORS policy
+```
+
+**Solution:**
+1. **Backend must allow origin** in `config/cors.php`:
+   ```php
+   'allowed_origins' => ['http://localhost:5173'],
+   ```
+
+2. **Or use proxy** in `vite.config.js`:
+   ```javascript
+   export default defineConfig({
+     server: {
+       proxy: {
+         '/api': 'http://localhost:8000'
+       }
+     }
+   })
+   ```
+
+---
+
+### Issue: Environment variables not working
+
+**Solution:**
+1. **Prefix with `VITE_`:**
+   ```env
+   # Wrong
+   API_URL=http://localhost:8000
+
+   # Correct
+   VITE_API_URL=http://localhost:8000
+   ```
+
+2. **Restart dev server** after changing `.env`
+
+---
+
+### Issue: Blank page in browser
+
+**Check:**
+1. **Console errors** (F12)
+2. **Network tab** - API calls failing?
+3. **Routing** - Is route defined in `src/routes/index.jsx`?
+4. **Component export** - Default vs named export
+
+**Debug:**
+```javascript
+// Add to component
+console.log('Component rendering:', props);
+```
+
+---
+
+## Contributing
+
+### Code Style
+
+**React:**
+- Functional components + Hooks
+- Named exports for components
+- PropTypes for type checking (if not using TypeScript)
+
+**CSS:**
+- TailwindCSS utility classes
+- Use shadcn/ui components where possible
+- Avoid inline styles unless dynamic
+
+**File Naming:**
+- Components: `PascalCase.jsx` (e.g., `LoginForm.jsx`)
+- Utilities: `camelCase.js` (e.g., `formatDate.js`)
+- Folders: `kebab-case/` (e.g., `api-services/`)
+
+### Pull Request Checklist
+
+Before submitting MR:
+- [ ] Code follows project style
+- [ ] ESLint passing (`npm run lint`)
+- [ ] No console.log statements
+- [ ] Component tested manually
+- [ ] Responsive design checked
+- [ ] API integration tested
+- [ ] README updated (if needed)
+- [ ] Screenshots attached (for UI changes)
+
+---
+
+## Resources
+
+**Project Documentation:**
+- [Laporan Milestone 2](./docs/Laporan_Progres_Milestone_2_3SI1_Tim_4.pdf)
+
+**Technical Docs:**
+- [React 19 Docs](https://react.dev/)
+- [Vite Guide](https://vitejs.dev/guide/)
+- [TailwindCSS](https://tailwindcss.com/docs)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [React Router](https://reactrouter.com/en/main)
+- [Leaflet](https://leafletjs.com/reference.html)
+
+**Backend API:**
+- [desa-cantik-api README](https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-api/-/blob/develop/README.md)
+
+---
+
+## License
+
+Proyek ini dikembangkan untuk keperluan akademik:
+
+**Copyright © 2025 Tim 4 - Kelas 3SI1**  
+**Politeknik  Statistika  STIS**
+
+Untuk keperluan pendidikan dan penelitian. Tidak untuk penggunaan komersial tanpa izin.
+
+---
+
+## Contact & Support
+
+**Team Communication:**
+- Daily Standup: WhatsApp group
+- Weekly Review: Tatap muka, waktu menyusul
+- GitLab Issues: [Create Issue](https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-frontend/-/issues)
+
+---
+<div align="center">
+
+### **Dibangun dengan lancar dan nyaman oleh Tim 4 Kelas 3SI1**
+
+**Politeknik Statistika STIS • Jakarta • 2025**
+
+[Documentation](docs/) • [Report Bug](https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-frontend/-/issues) • [Request Feature](https://git.stis.ac.id/rpl-lancarnyaman/desa-cantik-frontend/-/issues)
+
+</div>
