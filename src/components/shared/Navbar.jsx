@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { BarChart3 } from 'lucide-react';
 import logoDc from '@/assets/images/logo_dc.png';
 
-// Terima 'scrollToVillages' sebagai prop dari Home.jsx
 export default function Navbar({ scrollToVillages }) {
   return (
     <nav className="bg-gradient-to-r from-[#1C6EA4] to-[#154D71] sticky top-0 z-50 shadow-xl">
@@ -23,26 +22,28 @@ export default function Navbar({ scrollToVillages }) {
 
           {/* Navigation Menu */}
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+             <Button
+              asChild
               variant="ghost"
+              onClick={scroll => window.scrollTo({ top: 0, behavior: 'smooth' })} // Scroll to top
               className="text-white hover:text-[#FFF9AF] hover:bg-white/10 text-lg px-6 py-2 transition-all"
             >
-              Home
+              <Link to="/">Home</Link>
             </Button>
             <Button
-              onClick={scrollToVillages} // Gunakan prop
+              asChild
               variant="ghost"
+              onClick={scrollToVillages}
               className="text-white hover:text-[#FFF9AF] hover:bg-white/10 text-lg px-6 py-2 transition-all"
             >
-              Desa Cantik
+              <Link to="/">Desa Cantik</Link>
             </Button>
             <Button
               asChild
               variant="ghost"
               className="text-white hover:text-[#FFF9AF] hover:bg-white/10 text-lg px-6 py-2 transition-all"
             >
-              <Link to="/about">Tentang</Link>
+              <Link to="/tentang">Tentang</Link>
             </Button>
             <Button
               asChild

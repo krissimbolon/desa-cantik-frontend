@@ -44,11 +44,12 @@ const mockVillages = [
     malePopulation: 4562,
     femalePopulation: 4561,
   },
+  
 ];
 
 // ekspor service-nya sebagai objek
 export const villageService = {
-  // Fungsi untuk mengambil semua desa (simulasikan API delay)
+  // Fungsi untuk mengambil semua desa
   getAllVillages: async () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     return mockVillages;
