@@ -32,7 +32,7 @@ function AppRoutes() {
         {/* --- Rute Publik (Tetap sama) --- */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/about" element={<Tentang />} />
+        <Route path="/tentang" element={<Tentang />} />
         <Route path="/desa/:id" element={<VillageDetail />} />
         <Route path="/desa/:id/data" element={<VillageData />} />
         <Route path="/desa/:id/publikasi" element={<VillagePublikasi />} />

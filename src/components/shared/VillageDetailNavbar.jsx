@@ -19,6 +19,51 @@ export default function VillageDetailNavbar({
     return 'text-white hover:text-[#FFF9AF] hover:bg-white/10';
   };
 
+  const DataButton = () => {
+    if (scrollToSection) {
+      return (
+        <Button
+          variant="ghost"
+          className={`text-lg px-6 py-2 transition-all ${getActiveClass('data')}`}
+          onClick={() => scrollToSection('data')}
+        >
+          Data
+        </Button>
+      );
+    }
+    return (
+      <Button
+        asChild
+        variant="ghost"
+        className={`text-lg px-6 py-2 transition-all ${getActiveClass('data')}`}
+      >
+        <Link to={`/desa/${villageId}#data`}>Data</Link>
+      </Button>
+    );
+  };
+
+  const PublikasiButton = () => {
+    if (scrollToSection) {
+      return (
+        <Button
+          variant="ghost"
+          className={`text-lg px-6 py-2 transition-all ${getActiveClass('publikasi')}`}
+          onClick={() => scrollToSection('publikasi')}
+        >
+          Publikasi
+        </Button>
+      );
+    }
+    return (
+      <Button
+        asChild
+        variant="ghost"
+        className={`text-lg px-6 py-2 transition-all ${getActiveClass('publikasi')}`}
+      >
+        <Link to={`/desa/${villageId}#publikasi`}>Publikasi</Link>
+      </Button>
+    );
+  };
   // Tombol Peta
   const PetaButton = () => {
     if (scrollToSection) {
@@ -67,6 +112,7 @@ export default function VillageDetailNavbar({
     );
   };
 
+
   return (
     <nav className="bg-gradient-to-r from-[#1C6EA4] to-[#154D71] sticky top-0 z-50 shadow-xl">
       <div className="container mx-auto px-8">
@@ -87,6 +133,7 @@ export default function VillageDetailNavbar({
             <Button
               asChild
               variant="ghost"
+              onClick={scroll => window.scrollTo({ top: 0, behavior: 'smooth' })} // Scroll to top
               className={`text-lg px-6 py-2 transition-all ${
                 activeSection === 'tentang' 
                   ? 'bg-white/20 text-white' 
@@ -96,23 +143,8 @@ export default function VillageDetailNavbar({
               <Link to={`/desa/${villageId}`}>Desa</Link>
               
             </Button>
-
-            <Button
-              asChild
-              variant="ghost"
-              className={`text-lg px-6 py-2 transition-all ${getActiveClass('data')}`}
-            >
-              <Link to={`/desa/${villageId}/data`}>Data</Link>
-            </Button>
-
-            <Button
-              asChild
-              variant="ghost"
-              className={`text-lg px-6 py-2 transition-all ${getActiveClass('publikasi')}`}
-            >
-              <Link to={`/desa/${villageId}/publikasi`}>Publikasi</Link>
-            </Button>
-            
+            <DataButton />
+            <PublikasiButton />
             <PetaButton />
             <DokumentasiButton />
              <Button
