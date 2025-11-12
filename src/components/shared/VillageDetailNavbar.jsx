@@ -94,6 +94,7 @@ export default function VillageDetailNavbar({
               }`}
             >
               <Link to={`/desa/${villageId}`}>Desa</Link>
+              
             </Button>
 
             <Button
@@ -111,9 +112,15 @@ export default function VillageDetailNavbar({
             >
               <Link to={`/desa/${villageId}/publikasi`}>Publikasi</Link>
             </Button>
-
+            
             <PetaButton />
             <DokumentasiButton />
+             <Button
+              asChild
+              className="bg-[#FFF9AF] hover:bg-[#FFE680] text-[#154D71] text-lg px-8 py-2 ml-4 transition-all shadow-md hover:shadow-lg"
+            >
+              <Link to="/login">Login</Link>
+            </Button>
           </div>
         </div>
       </div>

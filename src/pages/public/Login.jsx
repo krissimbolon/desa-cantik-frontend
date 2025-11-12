@@ -24,16 +24,16 @@ export default function Login() {
     e.preventDefault();
     // Di sini nanti logika login admin
     console.log("Admin login:", adminUsername, adminPassword);
-    // Contoh navigasi setelah login
-    // navigate('/admin/dashboard'); 
+    // navigasi setelah login
+    navigate('/admin/dashboard'); 
   };
 
   const handleVillageLogin = (e) => {
     e.preventDefault();
     // Di sini nanti logika login perangkat desa
     console.log("Village login:", villageUsername, villagePassword);
-    // Contoh navigasi setelah login
-    // navigate('/desa/dashboard');
+    // navigasi setelah login
+    navigate('/desa-dashboard/dashboard');
   };
 
   const handleBack = () => {
