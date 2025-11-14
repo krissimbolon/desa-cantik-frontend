@@ -19,7 +19,7 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
 
-      {/* HEADER  */}
+      {/* HEADER */}
       <DashboardHeader
         title={title}
         subtitle={subtitle}
@@ -27,19 +27,17 @@ export default function DashboardLayout() {
         userInitial={userInitial}
       />
 
-      {/* WRAPPER: SIDEBAR + CONTENT UTAMA */}
-      <div className="flex flex-1 min-h-0"> 
+      {/* MIDDLE SECTION */}
+      <div className="flex flex-1 min-h-screen">
 
         {/* SIDEBAR */}
         <div
-          className="h-full border-r bg-white transition-all duration-300"
+          className="bg-white border-r transition-all duration-300 flex flex-col"
           style={{
             width: isCollapsed ? '4rem' : '16rem',
             flexShrink: 0
           }}
         >
-
-          {/* SIDEBAR COLLAPSE */}
           {isAdmin ? (
             <AdminSidebar
               isCollapsed={isCollapsed}
@@ -53,18 +51,17 @@ export default function DashboardLayout() {
           )}
         </div>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          <main className="flex-1 overflow-auto p-6">
+        {/* CONTENT */}
+        <div className="flex-1 flex flex-col min-h-screen">
+          <main >
             <Outlet />
           </main>
-
         </div>
+
       </div>
 
       {/* FOOTER */}
-      <div className="w-full">
-        <Footer scrollToVillages={() => {}} />
-      </div>
+      <Footer scrollToVillages={() => {}} />
 
     </div>
   );

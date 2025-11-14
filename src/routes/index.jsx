@@ -6,8 +6,6 @@ import Home from '@/pages/public/Home';
 import Login from '@/pages/public/Login';
 import Tentang from '@/pages/public/Tentang';
 import VillageDetail from '@/pages/public/VillageDetail';
-import VillageData from '@/pages/public/VillageData';
-import VillagePublikasi from '@/pages/public/VillagePublikasi';
 
 // --- Impor Halaman Internal ---
 import DashboardLayout from '@/layouts/DashboardLayout'; // <-- 1. Impor Layout
@@ -34,8 +32,6 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/tentang" element={<Tentang />} />
         <Route path="/desa/:id" element={<VillageDetail />} />
-        <Route path="/desa/:id/data" element={<VillageData />} />
-        <Route path="/desa/:id/publikasi" element={<VillagePublikasi />} />
         <Route path="/lupa-password" element={<Placeholder pageName="Lupa Password" />} />
         
         {/* --- 2. Rute Layout Admin (Internal) --- */}

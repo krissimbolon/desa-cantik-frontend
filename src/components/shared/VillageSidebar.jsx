@@ -1,24 +1,23 @@
-    // src/components/shared/VillageSidebar.jsx
-import React, { useState } from 'react';
+// src/components/shared/VillageSidebar.jsx
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Building2, LogOut, ChevronLeft } from 'lucide-react';
-import logoDc from '@/assets/images/logo_dc.png';
-import { villageMenuItems } from '../../routes/config'; // Impor menu dari config 
+import { LogOut, ChevronLeft } from 'lucide-react';
+import { villageMenuItems } from '../../routes/config';
 
 export default function VillageSidebar({ isCollapsed, setIsCollapsed }) {
   const location = useLocation();
 
   return (
     <aside
-      className={`relative bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
+      className={`relative bg-white border-r border-gray-200 
+        flex flex-col h-full transition-all duration-300
+        ${isCollapsed ? 'w-16' : 'w-64'}`}
     >
 
-      {/* Menu */}
-      <nav className="pt-6 overflow-y-auto">
-        <ul className="space-y-1 px-3">
+      {/* MENU — harus flex-1 agar bisa mendorong logout ke bawah */}
+      <nav className="pt-6 px-3 flex-1 min-h-0 overflow-y-auto">
+        <ul className="space-y-1">
           {villageMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.startsWith(item.path);
@@ -36,7 +35,7 @@ export default function VillageSidebar({ isCollapsed, setIsCollapsed }) {
                   title={isCollapsed ? item.label : undefined}
                 >
                   <Link to={item.path}>
-                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <Icon className="h-5 w-5" />
                     {!isCollapsed && <span className="text-sm">{item.label}</span>}
                   </Link>
                 </Button>
@@ -46,8 +45,8 @@ export default function VillageSidebar({ isCollapsed, setIsCollapsed }) {
         </ul>
       </nav>
 
-      {/* Logout */}
-      <div className="border-t border-gray-200 p-3 mt-auto">
+      {/* LOGOUT — mt-auto akan bekerja karena parent adalah flex-col full height */}
+      <div className="border-t border-gray-200 p-3">
         <Button
           asChild
           variant="outline"
@@ -61,7 +60,7 @@ export default function VillageSidebar({ isCollapsed, setIsCollapsed }) {
         </Button>
       </div>
 
-      {/* Collapse Button */}
+      {/* COLLAPSE BUTTON */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute top-20 -right-3 z-10 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 transition-all"
