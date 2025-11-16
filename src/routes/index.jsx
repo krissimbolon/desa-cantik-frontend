@@ -7,10 +7,14 @@ import Login from '@/pages/public/Login';
 import Tentang from '@/pages/public/Tentang';
 import VillageDetail from '@/pages/public/VillageDetail';
 
-// --- Impor Halaman Internal ---
+// --- Impor Halaman Admin BPS ---
 import DashboardLayout from '@/layouts/DashboardLayout'; // <-- 1. Impor Layout
 import DashboardAdmin from '@/pages/admin/DashboardAdmin';
+import UbahPasswordAdminBPS from '@/pages/admin/UbahPasswordAdminBPS'; 
+
+// --- Impor Halaman Perangkat Desa ---
 import DashboardDesa from '@/pages/desa/DashboardDesa';
+import UbahPasswordPerangkatDesa from '@/pages/desa/UbahPasswordPerangkatDesa';
 
 // Komponen placeholder
 const Placeholder = ({ pageName }) => (
@@ -42,7 +46,7 @@ function AppRoutes() {
           <Route path="modul-desa" element={<Placeholder pageName="Admin: Modul Desa" />} />
           <Route path="publikasi" element={<Placeholder pageName="Admin: Publikasi" />} />
           <Route path="peta-tematik" element={<Placeholder pageName="Admin: Peta Tematik" />} />
-          <Route path="ubah-password" element={<Placeholder pageName="Admin: Ubah Password" />} />
+          <Route path="ubah-password" element={<UbahPasswordAdminBPS />} />
           {/* Rute fallback jika hanya /admin */}
           <Route index element={<DashboardAdmin />} /> 
         </Route>
@@ -54,7 +58,7 @@ function AppRoutes() {
           <Route path="publikasi" element={<Placeholder pageName="Desa: Publikasi" />} />
           <Route path="data-statistik" element={<Placeholder pageName="Desa: Data Statistik" />} />
           <Route path="peta-tematik" element={<Placeholder pageName="Desa: Peta Tematik" />} />
-          <Route path="ubah-password" element={<Placeholder pageName="Desa: Ubah Password" />} />
+          <Route path="ubah-password" element={<UbahPasswordPerangkatDesa />} />
           {/* Rute fallback jika hanya /desa-dashboard */}
           <Route index element={<DashboardDesa />} />
         </Route>

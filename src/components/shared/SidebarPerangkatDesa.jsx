@@ -1,11 +1,11 @@
-// src/components/shared/VillageSidebar.jsx
+// src/components/shared/SidebarPerangkatDesa.jsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LogOut, ChevronLeft } from 'lucide-react';
 import { villageMenuItems } from '../../routes/config';
 
-export default function VillageSidebar({ isCollapsed, setIsCollapsed }) {
+export default function SidebarPerangkatDesa({ isCollapsed, setIsCollapsed }) {
   const location = useLocation();
 
   return (

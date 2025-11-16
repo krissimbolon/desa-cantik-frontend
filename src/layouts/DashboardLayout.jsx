@@ -1,9 +1,9 @@
 // src/layouts/DashboardLayout.jsx
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import AdminSidebar from '@/components/shared/AdminSidebar';
-import VillageSidebar from '@/components/shared/VillageSidebar';
-import DashboardHeader from '@/components/shared/DashboardHeader';
+import SidebarBPS from '@/components/shared/SidebarAdminBPS';
+import SidebarPerangkat from '@/components/shared/SidebarPerangkatDesa';
+import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 
 export default function DashboardLayout() {
@@ -20,7 +20,7 @@ export default function DashboardLayout() {
     <div className="min-h-screen flex flex-col bg-gray-50">
 
       {/* HEADER */}
-      <DashboardHeader
+      <Header
         title={title}
         subtitle={subtitle}
         userName={userName}
@@ -28,23 +28,23 @@ export default function DashboardLayout() {
       />
 
       {/* MIDDLE SECTION */}
-      <div className="flex flex-1 min-h-screen">
+      <div className="flex flex-1 min-h-0">
 
         {/* SIDEBAR */}
         <div
-          className="bg-white border-r transition-all duration-300 flex flex-col"
+        className="shrink-0 flex flex-col min-h-0 bg-white border-r"
           style={{
             width: isCollapsed ? '4rem' : '16rem',
             flexShrink: 0
           }}
         >
           {isAdmin ? (
-            <AdminSidebar
+            <SidebarBPS
               isCollapsed={isCollapsed}
               setIsCollapsed={setIsCollapsed}
             />
           ) : (
-            <VillageSidebar
+            <SidebarPerangkat
               isCollapsed={isCollapsed}
               setIsCollapsed={setIsCollapsed}
             />
@@ -52,12 +52,11 @@ export default function DashboardLayout() {
         </div>
 
         {/* CONTENT */}
-        <div className="flex-1 flex flex-col min-h-screen">
-          <main >
-            <Outlet />
+        <div className="flex-1 flex flex-col min-h-0">
+          <main className="overflow-auto p-6">
+            <Outlet /> 
           </main>
         </div>
-
       </div>
 
       {/* FOOTER */}
