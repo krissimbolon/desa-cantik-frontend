@@ -93,7 +93,7 @@ export default function UbahPasswordAdminBPS() {
   };
 
   return (
-    <div className="max-auto mx-auto">
+    <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Ubah Password (Admin)</CardTitle>
