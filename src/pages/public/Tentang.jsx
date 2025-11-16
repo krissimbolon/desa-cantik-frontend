@@ -1,9 +1,8 @@
 // src/pages/public/Tentang.jsx
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Download, Users, Target, TrendingUp, Shield } from 'lucide-react';
+import { Download, Users, Target, TrendingUp, Shield } from 'lucide-react';
 
 // Impor komponen layout
 import Navbar from '@/components/shared/Navbar';
@@ -22,7 +21,6 @@ const Tentang = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* 1. Menggunakan Komponen Navbar */}
       <Navbar scrollToVillages={scrollToTop} /> 
 
       {/* Hero Section */}
@@ -42,10 +40,8 @@ const Tentang = () => {
       {/* Konten Utama */}
       <div className="container mx-auto px-6 py-16">
         <div className="max-w-7xl mx-auto">
-          {/* Intro Section */}
           <div className="mb-20">
             <div className="grid md:grid-cols-2 gap-12 items-center">
-              {/* Text Content */}
               <div className="space-y-6">
                 <div className="inline-block">
                   <span className="bg-[#33A1E0] text-white px-4 py-2 text-lg rounded-full">Program BPS</span>
@@ -225,7 +221,6 @@ const Tentang = () => {
         </div>
       </div>
 
-      {/* 2. Menggunakan Komponen Footer*/}
       <Footer scrollToVillages={scrollToTop} />
     </div>
   );

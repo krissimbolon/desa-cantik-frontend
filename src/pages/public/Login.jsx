@@ -22,7 +22,6 @@ export default function Login() {
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    // Di sini nanti logika login admin
     console.log("Admin login:", adminUsername, adminPassword);
     // navigasi setelah login
     navigate('/admin/dashboard'); 
@@ -30,7 +29,6 @@ export default function Login() {
 
   const handleVillageLogin = (e) => {
     e.preventDefault();
-    // Di sini nanti logika login perangkat desa
     console.log("Village login:", villageUsername, villagePassword);
     // navigasi setelah login
     navigate('/desa-dashboard/dashboard');
@@ -42,7 +40,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {/* Background Pattern */}
       <div className="absolute blur-sm opacity-90 inset-0">
           <img 
             src={background}
@@ -78,9 +75,7 @@ export default function Login() {
         </CardHeader>
 
         <CardContent>
-          {/* Ganti defaultValue ke "village" */}
           <Tabs defaultValue="village" className="w-full">
-            {/* Tukar urutan trigger */}
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="village" className="data-[state=active]:bg-[#33A1E0] data-[state=active]:text-white">
                 Perangkat Desa
@@ -90,7 +85,7 @@ export default function Login() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Village Login (pindahkan ke atas) */}
+            {/* Village Login */}
             <TabsContent value="village">
               <form onSubmit={handleVillageLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -148,7 +143,7 @@ export default function Login() {
               </form>
             </TabsContent>
 
-            {/* Admin Login (pindahkan ke bawah) */}
+            {/* Admin Login  */}
             <TabsContent value="admin">
               <form onSubmit={handleAdminLogin} className="space-y-4">
                 <div className="space-y-2">

@@ -53,7 +53,7 @@ import {
 } from 'lucide-react';
 
 // --- MOCK DATA (Ganti dengan API) ---
-// TODO: Data ini harus di-fetch dari API (hanya untuk desa ini)
+// TODO: Data ini harus di-fetch dari API 
 const MOCK_GEOSPATIAL = [
   { id: 'geo001', name: 'Batas Wilayah Desa A', type: 'Polygon', source: 'data_desa_a.geojson' },
   { id: 'geo002', name: 'Titik Lokasi Sekolah', type: 'Point', source: 'data_sekolah.geojson' },
@@ -66,7 +66,6 @@ const MOCK_LAYERS = [
 ];
 // --- Akhir Mock Data ---
 
-// Fix icon default Leaflet (penting!)
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -75,9 +74,9 @@ L.Icon.Default.mergeOptions({
 });
 
 
-export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
-  const mapRef = useRef(null); // Ref untuk map instance
-  const layerGroupRef = useRef(null); // Ref untuk menampung semua layer GeoJSON
+export default function PetaTematikDesa() { 
+  const mapRef = useRef(null); 
+  const layerGroupRef = useRef(null); 
 
   // TODO: Fetch data ini dari API
   const [geospatialData, setGeospatialData] = useState(MOCK_GEOSPATIAL);
@@ -87,26 +86,21 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
   const [modalType, setModalType] = useState(null); // 'addGeo', 'editGeo', 'addLayer', 'editLayer'
   const [currentItem, setCurrentItem] = useState(null); // Data untuk diedit
 
-  // --- PERBAIKAN BUG LEAFLET ---
-  // 1. useEffect Pertama HANYA untuk Cleanup
   useEffect(() => {
-    // Cleanup map saat komponen unmount
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, []); // [] dependency agar hanya run sekali
+  }, []); 
 
-  // 2. useEffect Kedua untuk Inisialisasi Peta dan Memuat Data
   useEffect(() => {
-    // --- SOLUSI BUG ---
-    // Inisialisasi Peta JIKA BELUM ADA (karena div #mapPreview sekarang ada)
+
     if (!mapRef.current && document.getElementById('mapPreview')) {
       mapRef.current = L.map('mapPreview', {
-        center: [-2.9739, 119.9045], // Koordinat Toraja Utara
-        zoom: 11, // Zoom lebih dekat
+        center: [-2.9739, 119.9045], 
+        zoom: 11,
       });
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -115,7 +109,6 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
 
       layerGroupRef.current = L.layerGroup().addTo(mapRef.current);
     }
-    // --- AKHIR SOLUSI ---
 
     // Jangan lakukan apa-apa jika peta atau layer group belum siap
     if (!mapRef.current || !layerGroupRef.current) return;
@@ -130,7 +123,7 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
       
       if (geoData) {
         // Fetch file GeoJSON dari folder /public
-        return fetch(`/${geoData.source}`) // (Contoh: fetch /data_desa_a.geojson)
+        return fetch(`/${geoData.source}`) 
           .then(response => {
             if (!response.ok) {
               throw new Error(`File ${geoData.source} tidak ditemukan.`);
@@ -181,10 +174,10 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
   }, [layerData, geospatialData]); // Jalankan ulang jika data atau layer berubah
 
 
-  // 3. Fungsi CRUD (Simulasi)
+  // 3. Fungsi CRUD
   const handleOpenModal = (type, item = null) => {
     setModalType(type);
-    setCurrentItem(item); // null jika 'add', berisi data jika 'edit'
+    setCurrentItem(item);
     setIsModalOpen(true);
   };
 
@@ -207,7 +200,7 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
     // TODO: Panggil API Create/Update
     console.log('Form Submit:', modalType, data);
     
-    // Logika CRUD (Simulasi)
+    // Logika CRUD 
     if (modalType === 'addGeo') {
       setGeospatialData([...geospatialData, { id: `geo${Date.now()}`, ...data }]);
     } else if (modalType === 'editGeo') {
@@ -218,7 +211,7 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
       setLayerData(layerData.map(item => item.id === currentItem.id ? { ...item, ...data } : item));
     }
     
-    setIsModalOpen(false); // Tutup modal
+    setIsModalOpen(false); 
   };
 
   // 4. Render Komponen Modal (Dinamis)
@@ -289,7 +282,7 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
   return (
     <div className="space-y-6">
       
-      {/* 1. Manajemen Data (CRUD) - DIPINDAH KE ATAS */}
+      {/* 1. Manajemen Data */}
       <Tabs defaultValue="geospatial" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="geospatial">
@@ -419,7 +412,7 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
         </TabsContent>
       </Tabs>
       
-      {/* 2. Preview Peta - DIPINDAH KE BAWAH */}
+      {/* 2. Preview Peta  */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -431,7 +424,7 @@ export default function PetaTematikDesa() { // <-- Nama Komponen Diubah
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Ini adalah div target untuk Leaflet */}
+          {/* div untuk Leaflet */}
           <div id="mapPreview" className="h-[400px] w-full rounded-md" />
         </CardContent>
       </Card>

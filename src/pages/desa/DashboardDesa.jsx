@@ -1,9 +1,5 @@
 // src/pages/desa/DashboardDesa.jsx
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, FileText, BarChart3, TrendingUp, Activity } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
 
 // Data dummy
 const visitorsData = [

@@ -1,21 +1,22 @@
 // src/pages/public/VillageDetail.jsx
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+
 // 1. Impor MapContainer dan komponen Leaflet
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { MapPin, Users, BarChart3, Image as ImageIcon, FileText, Layers } from 'lucide-react';
+
 // 2. Impor komponen Filter
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { villageService } from '@/services/villageService';
 import VillageDetailNavbar from '@/components/shared/VillageDetailNavbar';
 import Footer from '@/components/shared/Footer';
 
-// --- 3. Data Dummy GeoJSON (kita ambil dari PetaTematik.jsx) ---
+// --- 3. Data Dummy GeoJSON  ---
 const dataLayer1 = {
   "type": "FeatureCollection",
   "features": [
@@ -76,7 +77,7 @@ export default function VillageDetail() {
     loadData();
   }, [id]); 
 
-  // 5. Update scroll-spy untuk memantau SEMUA section
+  // 5. Update scroll-spy untuk memantau semua section
   useEffect(() => {
     const sections = ['tentang', 'data', 'publikasi', 'peta', 'dokumentasi'];
     
@@ -267,7 +268,7 @@ export default function VillageDetail() {
         </div>
       </section>
 
-      {/* --- Tambahkan Section "Data" (Placeholder) --- */}
+      {/* --- Tambahkan Section "Data" --- */}
       <section id="data" className="py-20 bg-gray-50 scroll-mt-28">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-12">
@@ -283,7 +284,7 @@ export default function VillageDetail() {
         </div>
       </section>
 
-      {/* ---  Tambahkan Section "Publikasi" (Placeholder) --- */}
+      {/* ---  Tambahkan Section "Publikasi" --- */}
       <section id="publikasi" className="py-20 bg-white scroll-mt-28">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-12">
@@ -318,7 +319,6 @@ export default function VillageDetail() {
             <CardContent className="flex flex-wrap gap-4 items-center">
               <div className="space-y-2">
                 <Label>Pilih Layer Utama</Label>
-                {/* Kode ini sekarang aman karena 'activeLayerId' sudah ada */}
                 <Select value={activeLayerId} onValueChange={handleLayerChange}>
                   <SelectTrigger className="w-[280px]">
                     <SelectValue placeholder="Pilih layer..." />
@@ -337,7 +337,7 @@ export default function VillageDetail() {
                     <div key={opt.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`check-detail-${opt.id}`}
-                        checked={layerVisibility[opt.id]} // <-- Kode ini sekarang aman
+                        checked={layerVisibility[opt.id]} 
                         onCheckedChange={() => handleVisibilityChange(opt.id)}
                       />
                       <Label
@@ -356,10 +356,9 @@ export default function VillageDetail() {
           {/* Peta Card */}
           <Card className="overflow-hidden shadow-lg border-0">
             <CardContent className="p-0">
-              {/* Kita harus cek !loading DULU sebelum render MapContainer */}
               {!loading && (
                 <MapContainer 
-                  center={[-3.05, 119.93]} // <-- Ganti ke koordinat Toraja Utara
+                  center={[-3.05, 119.93]} // koordinat Toraja Utara
                   zoom={12} 
                   scrollWheelZoom={true} 
                   style={{ height: '600px', width: '100%' }}
@@ -389,7 +388,7 @@ export default function VillageDetail() {
         </div>
       </section>
 
-      {/* --- Section "Dokumentasi" (tetap sama) --- */}
+      {/* --- Section "Dokumentasi"  --- */}
       <section id="dokumentasi" className="py-20 bg-white scroll-mt-28">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-12">
