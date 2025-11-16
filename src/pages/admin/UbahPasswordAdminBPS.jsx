@@ -41,7 +41,7 @@ export default function UbahPasswordAdminBPS() {
   const [success, setSuccess] = useState(null);
 
   // Tentukan apakah field "Password Lama" perlu ditampilkan
-  // HANYA tampil jika admin mengubah password-nya sendiri
+  // tampil jika admin mengubah password-nya sendiri
   const showOldPassword = targetUser === 'self';
 
   // Handle submit form
@@ -105,7 +105,7 @@ export default function UbahPasswordAdminBPS() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             
-            {/* Opsi Target (HANYA UNTUK ADMIN) */}
+            {/* Opsi Target */}
             <div className="space-y-2">
               <Label htmlFor="targetUser">Ubah Password Untuk Akun</Label>
               <Select value={targetUser} onValueChange={setTargetUser}>
@@ -124,7 +124,7 @@ export default function UbahPasswordAdminBPS() {
               </Select>
             </div>
 
-            {/* Field Password Lama (HANYA JIKA UBAH 'SELF') */}
+            {/* Field Password Lama */}
             {showOldPassword && (
               <div className="space-y-2">
                 <Label htmlFor="oldPassword">Password Lama</Label>

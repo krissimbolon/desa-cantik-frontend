@@ -8,7 +8,7 @@ import Tentang from '@/pages/public/Tentang';
 import VillageDetail from '@/pages/public/VillageDetail';
 
 // --- Impor Halaman Admin BPS ---
-import DashboardLayout from '@/layouts/DashboardLayout'; // <-- 1. Impor Layout
+import DashboardLayout from '@/layouts/DashboardLayout'; 
 import DashboardAdmin from '@/pages/admin/DashboardAdmin';
 import UbahPasswordAdminBPS from '@/pages/admin/UbahPasswordAdminBPS'; 
 import PetaTematikAdmin from '@/pages/admin/PetaTematikAdmin';
@@ -49,7 +49,6 @@ function AppRoutes() {
           <Route path="publikasi" element={<Placeholder pageName="Admin: Publikasi" />} />
           <Route path="peta-tematik" element={<PetaTematikAdmin />} />
           <Route path="ubah-password" element={<UbahPasswordAdminBPS />} />
-          {/* Rute fallback jika hanya /admin */}
           <Route index element={<DashboardAdmin />} /> 
         </Route>
         
@@ -61,7 +60,6 @@ function AppRoutes() {
           <Route path="data-statistik" element={<Placeholder pageName="Desa: Data Statistik" />} />
           <Route path="peta-tematik" element={<PetaTematikDesa />} />
           <Route path="ubah-password" element={<UbahPasswordPerangkatDesa />} />
-          {/* Rute fallback jika hanya /desa-dashboard */}
           <Route index element={<DashboardDesa />} />
         </Route>
 

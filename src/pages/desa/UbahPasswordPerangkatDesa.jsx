@@ -85,12 +85,10 @@ export default function UbahPasswordPerangkatDesa() {
         </CardHeader>
         
         <form onSubmit={handleSubmit}>
-          {/* Beri jarak lebih besar (space-y-6) */}
           <CardContent className="space-y-6">
             
             {/* Field Password Lama (SELALU TAMPIL) */}
             <div className="space-y-2">
-              {/* Tambahkan Ikon pada Label */}
               <Label htmlFor="oldPassword" className="flex items-center gap-2">
                 <LockKeyhole className="h-4 w-4 text-gray-600" />
                 <span>Password Lama</span>
@@ -106,7 +104,6 @@ export default function UbahPasswordPerangkatDesa() {
 
             {/* Field Password Baru */}
             <div className="space-y-2">
-              {/* Tambahkan Ikon pada Label */}
               <Label htmlFor="newPassword" className="flex items-center gap-2">
                 <Lock className="h-4 w-4 text-gray-600" />
                 <span>Password Baru</span>
@@ -122,7 +119,6 @@ export default function UbahPasswordPerangkatDesa() {
 
             {/* Field Konfirmasi Password Baru */}
             <div className="space-y-2">
-              {/* Tambahkan Ikon pada Label */}
               <Label htmlFor="confirmPassword" className="flex items-center gap-2">
                 <Lock className="h-4 w-4 text-gray-600" />
                 <span>Konfirmasi Password Baru</span>
@@ -155,7 +151,6 @@ export default function UbahPasswordPerangkatDesa() {
 
           </CardContent>
           <CardFooter>
-            {/* Tambahkan Ikon pada Button */}
             <Button type="submit" disabled={loading}>
               {loading ? (
                 'Menyimpan...' 

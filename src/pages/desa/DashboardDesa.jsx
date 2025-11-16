@@ -4,9 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, BarChart3, TrendingUp, Activity } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-import VillageSidebar from '@/components/shared/SidebarPerangkatDesa';
-import DashboardHeader from '@/components/shared/Header';
-import Footer from '@/components/shared/Footer';
 
 // Data dummy
 const visitorsData = [
@@ -35,7 +32,6 @@ export default function DashboardDesa() {
         {/* 4. Konten Halaman */}
         <main className="flex-1 overflow-auto p-6">
           <div className="space-y-6">
-           
           </div>
         </main>
         </div>

@@ -1,8 +1,5 @@
 // src/pages/admin/DashboardAdmin.jsx
 import React from 'react';
-import AdminSidebar from '@/components/shared/SidebarAdminBPS';
-import DashboardHeader from '@/components/shared/Header';
-import Footer from '@/components/shared/Footer';
 
 // Data dummy 
 const statsData = [
@@ -28,7 +25,6 @@ export default function DashboardAdmin() {
         {/* Konten Halaman */}
         <main className="flex-1 overflow-auto p-6">
           <div className="space-y-6">
-           
           </div>
         </main>
     

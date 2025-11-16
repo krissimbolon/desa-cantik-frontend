@@ -381,7 +381,7 @@ export default function PetaTematikAdmin() {
                       <TableRow>
                         <TableHead>Nama Data</TableHead>
                         <TableHead>Tipe</TableHead>
-                        <TableHead>Sumber (File)</TableHead>
+                        <TableHead>Sumber</TableHead>
                         <TableHead className="w-[50px]">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
