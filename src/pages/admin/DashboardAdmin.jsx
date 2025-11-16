@@ -1,7 +1,7 @@
 // src/pages/admin/DashboardAdmin.jsx
 import React from 'react';
-import AdminSidebar from '@/components/shared/AdminSidebar';
-import DashboardHeader from '@/components/shared/DashboardHeader';
+import AdminSidebar from '@/components/shared/SidebarAdminBPS';
+import DashboardHeader from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 
 // Data dummy 
