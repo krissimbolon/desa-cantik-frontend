@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, BarChart3, TrendingUp, Activity } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-import VillageSidebar from '@/components/shared/VillageSidebar';
-import DashboardHeader from '@/components/shared/DashboardHeader';
+import VillageSidebar from '@/components/shared/SidebarPerangkatDesa';
+import DashboardHeader from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 
 // Data dummy

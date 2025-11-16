@@ -267,7 +267,7 @@ export default function VillageDetail() {
         </div>
       </section>
 
-      {/* --- 8. Tambahkan Section "Data" (Placeholder) --- */}
+      {/* --- Tambahkan Section "Data" (Placeholder) --- */}
       <section id="data" className="py-20 bg-gray-50 scroll-mt-28">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-12">
@@ -283,7 +283,7 @@ export default function VillageDetail() {
         </div>
       </section>
 
-      {/* --- 9. Tambahkan Section "Publikasi" (Placeholder) --- */}
+      {/* ---  Tambahkan Section "Publikasi" (Placeholder) --- */}
       <section id="publikasi" className="py-20 bg-white scroll-mt-28">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center mb-12">
