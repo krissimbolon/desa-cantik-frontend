@@ -17,6 +17,10 @@ import PetaTematikAdmin from '@/pages/admin/PetaTematikAdmin';
 import DashboardDesa from '@/pages/desa/DashboardDesa';
 import UbahPasswordPerangkatDesa from '@/pages/desa/UbahPasswordPerangkatDesa';
 import PetaTematikDesa from '@/pages/desa/PetaTematikDesa';
+import ProfilUmumDesa from '@/pages/desa/ProfilUmumDesa';
+import PublikasiDesa from '@/pages/desa/PublikasiDesa';
+import DataStatistikDesa from '@/pages/desa/DataStatistikDesa';
+
 
 // Komponen placeholder
 const Placeholder = ({ pageName }) => (
@@ -55,9 +59,9 @@ function AppRoutes() {
         {/* --- 3. Rute Layout Perangkat Desa (Internal) --- */}
         <Route path="/desa-dashboard" element={<DashboardLayout />}>
           <Route path="dashboard" element={<DashboardDesa />} />
-          <Route path="profil-umum" element={<Placeholder pageName="Desa: Profil Umum" />} />
-          <Route path="publikasi" element={<Placeholder pageName="Desa: Publikasi" />} />
-          <Route path="data-statistik" element={<Placeholder pageName="Desa: Data Statistik" />} />
+          <Route path="profil-umum" element={<ProfilUmumDesa pageName="Desa: Profil Umum" />} />
+          <Route path="publikasi" element={<PublikasiDesa pageName="Desa: Publikasi" />} />
+          <Route path="data-statistik" element={<DataStatistikDesa pageName="Desa: Data Statistik" />} />
           <Route path="peta-tematik" element={<PetaTematikDesa />} />
           <Route path="ubah-password" element={<UbahPasswordPerangkatDesa />} />
           <Route index element={<DashboardDesa />} />
