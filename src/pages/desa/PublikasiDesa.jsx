@@ -1,6 +1,6 @@
 // src/pages/admin/PublikasiDesa.jsx
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -43,37 +43,8 @@ import {
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-
-// --- Data Dummy ---
-const dummyPublications = [
-  {
-    id: 1,
-    title: 'Laporan Statistik 2025',
-    subject: 'Statistik Desa',
-    releaseDate: new Date('2025-10-10'),
-    status: 'Rilis',
-    fileName: 'laporan-statistik-2025.pdf',
-    fileUrl: '/mock-files/laporan-statistik-2025.pdf', // URL mock
-  },
-  {
-    id: 2,
-    title: 'Partisipasi Sekolah Agustus 2025',
-    subject: 'Sosial',
-    releaseDate: new Date('2025-08-15'),
-    status: 'Rilis',
-    fileName: 'partisipasi-sekolah-ags.pdf',
-    fileUrl: '/mock-files/partisipasi-sekolah-ags.pdf', // URL mock
-  },
-  {
-    id: 3,
-    title: 'Data Ekonomi Triwulan 3',
-    subject: 'Ekonomi Lokal',
-    releaseDate: new Date('2025-09-30'),
-    status: 'Diarsipkan',
-    fileName: 'data-ekonomi-tw3.pdf',
-    fileUrl: '/mock-files/data-ekonomi-tw3.pdf', // URL mock
-  },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { dataApi } from '@/services/dataApi';
 
 // Opsi untuk form select
 const subjectOptions = ['Statistik Desa', 'Sosial', 'Ekonomi Lokal', 'Pemerintahan'];
@@ -91,10 +62,47 @@ const defaultFormState = {
 };
 
 export default function PublikasiDesa() {
-  const [publications, setPublications] = useState(dummyPublications);
+  const { activeVillageId } = useAuth();
+  const [publications, setPublications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formState, setFormState] = useState(defaultFormState);
   const [editingId, setEditingId] = useState(null); 
+
+  const selectedYear = useMemo(() => {
+    return formState.releaseDate ? formState.releaseDate.getFullYear() : undefined;
+  }, [formState.releaseDate]);
+
+  const mapResponse = (items = []) =>
+    items.map((pub) => ({
+      id: pub.id,
+      title: pub.title,
+      subject: pub.description || 'Publikasi Desa',
+      releaseDate: pub.published_at ? new Date(pub.published_at) : null,
+      status: 'Rilis',
+      fileName: pub.file_name,
+      fileUrl: pub.download_url || pub.file_url,
+    }));
+
+  const loadPublications = async () => {
+    if (!activeVillageId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await dataApi.listPublications(activeVillageId, { per_page: 50 });
+      setPublications(mapResponse(result.items));
+    } catch (err) {
+      setError(err?.message || 'Gagal memuat publikasi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPublications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVillageId]);
 
   // --- Handlers untuk Form ---
   const handleFormChange = (e) => {
@@ -149,50 +157,54 @@ export default function PublikasiDesa() {
   };
 
   // --- Handler untuk Aksi ---
-  const handleSubmit = () => {
-    if (editingId) {
-      // Logika Edit
-      setPublications(
-        publications.map((pub) =>
-          pub.id === editingId
-            ? { ...pub, 
-                ...formState, 
-                // Pastikan fileName dan fileUrl diperbarui dengan benar
-                fileName: formState.file ? formState.file.name : pub.fileName,
-                fileUrl: formState.file ? formState.fileUrl : pub.fileUrl
-              }
-            : pub
-        )
-      );
-    } else {
-      // Logika Tambah
-      const newPublication = {
-        ...formState,
-        id: Date.now(), 
-        fileName: formState.file ? formState.file.name : 'Belum ada berkas',
-        // fileUrl sudah di-set di handleFileChange
-      };
-      setPublications([newPublication, ...publications]);
+  const handleSubmit = async () => {
+    if (!activeVillageId) {
+      setError('Pilih desa aktif terlebih dahulu');
+      return;
     }
-    // Jangan panggil handleCloseDialog di sini jika URL di-revoke
-    setIsDialogOpen(false);
-    setEditingId(null);
-    setFormState(defaultFormState);
+
+    const payload = {
+      title: formState.title,
+      description: formState.subject,
+      published_at: formState.releaseDate
+        ? formState.releaseDate.toISOString().slice(0, 10)
+        : null,
+      file: formState.file,
+    };
+
+    try {
+      if (editingId) {
+        await dataApi.updatePublication(activeVillageId, editingId, payload);
+      } else {
+        await dataApi.uploadPublication(activeVillageId, payload);
+      }
+      await loadPublications();
+      setIsDialogOpen(false);
+      setEditingId(null);
+      setFormState(defaultFormState);
+    } catch (err) {
+      setError(err?.message || 'Gagal menyimpan publikasi');
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    if (!activeVillageId) {
+      setError('Pilih desa aktif terlebih dahulu');
+      return;
+    }
     if (window.confirm('Apakah Anda yakin ingin menghapus publikasi ini?')) {
-      // Hapus item dan revoke URL jika ada
-      const pubToDelete = publications.find(p => p.id === id);
-      if (pubToDelete && pubToDelete.fileUrl && pubToDelete.fileUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(pubToDelete.fileUrl);
+      try {
+        await dataApi.deletePublication(activeVillageId, id);
+        setPublications(publications.filter((pub) => pub.id !== id));
+      } catch (err) {
+        setError(err?.message || 'Gagal menghapus publikasi');
       }
-      setPublications(publications.filter((pub) => pub.id !== id));
     }
   };
 
   return (
     <div className="p-8 space-y-6">
+      {error && <div className="text-red-600 text-sm">{error}</div>}
       {/* --- Filter dan Tombol Tambah --- */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex gap-4">

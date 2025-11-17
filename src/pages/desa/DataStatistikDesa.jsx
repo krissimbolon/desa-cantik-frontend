@@ -1,6 +1,6 @@
 // src/pages/admin/DataStatistikDesa.jsx
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -25,93 +25,113 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Edit, Trash, Plus, Calendar as CalendarIcon, FileText,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight 
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { Edit, Trash, Plus } from 'lucide-react';
+import { dataApi } from '@/services/dataApi';
+import { useAuth } from '@/contexts/AuthContext';
 
-// --- Data Dummy ---
-const dummyStatistics = [
-  {
-    id: 1,
-    title: 'Data Penduduk Lembang Nonongan Selatan 2024',
-    subject: 'Demografi',
-    updatedDate: new Date('2025-11-15'),
-    status: 'Terverifikasi',
-    fileName: 'data-penduduk-2024.csv',
-    fileUrl: '/mock-files/data-penduduk-2024.csv', // URL mock
-  },
-  {
-    id: 2,
-    title: 'Data UMKM Lembang Nonongan Selatan 2024',
-    subject: 'Ekonomi',
-    updatedDate: new Date('2025-11-10'),
-    status: 'Menunggu Validasi',
-    fileName: 'data-umkm-2024.csv',
-    fileUrl: '/mock-files/data-umkm-2024.csv', // URL mock
-  },
-  {
-    id: 3,
-    title: 'Data Fasilitas Pendidikan 2024',
-    subject: 'Pendidikan',
-    updatedDate: new Date('2025-11-05'),
-    status: 'Ditolak',
-    fileName: 'data-fasilitas-pendidikan-2024.csv',
-    fileUrl: '/mock-files/data-fasilitas-pendidikan-2024.csv', // URL mock
-  },
-];
-
-// Opsi untuk form select
-const subjectOptions = ['Demografi', 'Ekonomi', 'Pendidikan', 'Kesehatan', 'Pemerintahan'];
 const statusOptions = ['Terverifikasi', 'Menunggu Validasi', 'Ditolak'];
-// --------------------
 
-// Nilai default untuk form 'Tambah'
 const defaultFormState = {
-  title: '',
-  subject: subjectOptions[0],
-  updatedDate: new Date(),
+  indicator_name: '',
+  statistic_type_id: '',
+  value: '',
+  unit: '',
+  year: new Date().getFullYear(),
+  period: '',
+  source: '',
+  notes: '',
   status: statusOptions[0],
-  file: null, 
-  fileName: '',
-  fileUrl: '',
 };
 
 export default function DataStatistikDesa() {
-  const [statistics, setStatistics] = useState(dummyStatistics);
+  const { activeVillageId } = useAuth();
+  const [statistics, setStatistics] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formState, setFormState] = useState(defaultFormState);
-  const [editingId, setEditingId] = useState(null); 
+  const [editingId, setEditingId] = useState(null);
+  const [statisticTypes, setStatisticTypes] = useState([]);
+  const [activeFilter, setActiveFilter] = useState({ type: 'all', year: null });
 
-  // Fungsi helper untuk menentukan warna Badge
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case "Terverifikasi":
-        return "default";
-      case "Menunggu Validasi":
-        return "secondary";
-      case "Ditolak":
-        return "destructive";
-      default:
-        return "outline";
+  const yearOptions = useMemo(() => {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 6 }, (_, idx) => (current + 1) - idx);
+  }, []);
+
+  const mapStatistics = (result) =>
+    (result.items || []).map((stat) => ({
+      id: stat.id,
+      indicator_name: stat.indicator_name,
+      subject: stat.statistic_type?.category || stat.statistic_type?.name || 'Lainnya',
+      value: stat.value,
+      unit: stat.unit,
+      year: stat.year,
+      statistic_type_id: stat.statistic_type_id,
+      period: stat.period,
+      source: stat.source,
+      notes: stat.notes,
+      status: 'Terverifikasi',
+      updated_at: stat.updated_at ? new Date(stat.updated_at) : null,
+    }));
+
+  const loadStatistics = async (filters = activeFilter) => {
+    if (!activeVillageId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await dataApi.listStatistics(activeVillageId, {
+        per_page: 50,
+        statistic_type_id: filters.type !== 'all' ? filters.type : undefined,
+        year: filters.year || undefined,
+      });
+      setStatistics(mapStatistics(result));
+    } catch (err) {
+      setError(err?.message || 'Gagal memuat data statistik');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // --- Handlers untuk Form ---
+  useEffect(() => {
+    loadStatistics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVillageId]);
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const types = await dataApi.listStatisticTypes();
+        setStatisticTypes(types);
+        if (!formState.statistic_type_id && types[0]?.id) {
+          setFormState((prev) => ({ ...prev, statistic_type_id: types[0].id }));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case 'Terverifikasi':
+        return 'default';
+      case 'Menunggu Validasi':
+        return 'secondary';
+      case 'Ditolak':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormState((prev) => ({ ...prev, [name]: value }));
@@ -121,25 +141,12 @@ export default function DataStatistikDesa() {
     setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleDateChange = (date) => {
-    setFormState((prev) => ({ ...prev, updatedDate: date }));
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormState((prev) => ({ 
-        ...prev, 
-        file: file, 
-        fileName: file.name,
-        fileUrl: URL.createObjectURL(file) 
-      }));
-    }
-  };
-
-  // --- Handlers untuk Dialog ---
   const handleOpenTambah = () => {
-    setFormState(defaultFormState);
+    setFormState({
+      ...defaultFormState,
+      statistic_type_id: statisticTypes[0]?.id || '',
+      year: new Date().getFullYear(),
+    });
     setEditingId(null);
     setIsDialogOpen(true);
   };
@@ -147,63 +154,77 @@ export default function DataStatistikDesa() {
   const handleOpenEdit = (stat) => {
     setEditingId(stat.id);
     setFormState({
-      ...stat,
-      file: null, // Reset file input
+      indicator_name: stat.indicator_name || '',
+      statistic_type_id: stat.statistic_type_id || '',
+      value: stat.value ?? '',
+      unit: stat.unit || '',
+      year: stat.year || new Date().getFullYear(),
+      period: stat.period || '',
+      source: stat.source || '',
+      notes: stat.notes || '',
+      status: stat.status || statusOptions[0],
     });
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
-    if (formState.fileUrl && formState.file) {
-      URL.revokeObjectURL(formState.fileUrl);
-    }
     setIsDialogOpen(false);
     setEditingId(null);
     setFormState(defaultFormState);
   };
 
-  // --- Handler untuk Aksi ---
-  const handleSubmit = () => {
-    if (editingId) {
-      // Logika Edit
-      setStatistics(
-        statistics.map((stat) =>
-          stat.id === editingId
-            ? { ...stat, 
-                ...formState, 
-                fileName: formState.file ? formState.file.name : stat.fileName,
-                fileUrl: formState.file ? formState.fileUrl : stat.fileUrl
-              }
-            : stat
-        )
-      );
-    } else {
-      // Logika Tambah
-      const newStatistic = {
-        ...formState,
-        id: Date.now(), 
-        fileName: formState.file ? formState.file.name : 'Belum ada berkas',
-      };
-      setStatistics([newStatistic, ...statistics]);
+  const handleSubmit = async () => {
+    if (!activeVillageId) {
+      setError('Pilih desa aktif terlebih dahulu');
+      return;
     }
-    setIsDialogOpen(false);
-    setEditingId(null);
-    setFormState(defaultFormState);
-  };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus data statistik ini?')) {
-      const statToDelete = statistics.find(p => p.id === id);
-      if (statToDelete && statToDelete.fileUrl && statToDelete.fileUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(statToDelete.fileUrl);
+    const payload = {
+      indicator_name: formState.indicator_name,
+      statistic_type_id: Number(formState.statistic_type_id),
+      value: formState.value !== '' ? Number(formState.value) : null,
+      unit: formState.unit || null,
+      year: Number(formState.year),
+      period: formState.period || null,
+      source: formState.source || null,
+      notes: formState.notes || null,
+    };
+
+    try {
+      if (editingId) {
+        await dataApi.updateStatistic(activeVillageId, editingId, payload);
+      } else {
+        await dataApi.createStatistic(activeVillageId, payload);
       }
-      setStatistics(statistics.filter((stat) => stat.id !== id));
+      await loadStatistics();
+      setIsDialogOpen(false);
+      setEditingId(null);
+      setFormState(defaultFormState);
+    } catch (err) {
+      setError(err?.message || 'Gagal menyimpan data statistik');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!activeVillageId) {
+      setError('Pilih desa aktif terlebih dahulu');
+      return;
+    }
+    if (window.confirm('Apakah Anda yakin ingin menghapus data statistik ini?')) {
+      try {
+        await dataApi.deleteStatistic(activeVillageId, id);
+        setStatistics((prev) => prev.filter((stat) => stat.id !== id));
+      } catch (err) {
+        setError(err?.message || 'Gagal menghapus data statistik');
+      }
     }
   };
 
   return (
     <div className="p-8 space-y-6">
-      {/* --- Filter dan Tombol Tambah --- */}
+      {error && <div className="text-sm text-red-600">{error}</div>}
+      {loading && <div className="text-sm text-gray-500">Memuat data statistik...</div>}
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex gap-4">
           <Select defaultValue="all">
@@ -212,18 +233,37 @@ export default function DataStatistikDesa() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Subjek</SelectItem>
-              {subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {statisticTypes.map((type) => (
+                <SelectItem key={type.id} value={String(type.id)}>
+                  {type.category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select defaultValue="2025">
+          <Select
+            value={activeFilter.year ? String(activeFilter.year) : 'all'}
+            onValueChange={(val) => {
+              const year = val === 'all' ? null : Number(val);
+              const next = { ...activeFilter, year };
+              setActiveFilter(next);
+              loadStatistics(next);
+            }}
+          >
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Tahun" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="all">Semua</SelectItem>
+              {yearOptions.map((y) => (
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => { setActiveFilter({ type: 'all', year: null }); loadStatistics({ type: 'all', year: null }); }}>
+            Reset
+          </Button>
         </div>
         <Button onClick={handleOpenTambah} className="bg-[#1C6EA4] hover:bg-[#154D71]">
           <Plus className="mr-2 h-4 w-4" />
@@ -231,18 +271,17 @@ export default function DataStatistikDesa() {
         </Button>
       </div>
 
-      {/* --- Tabel Statistik --- */}
       <Card className="shadow-lg border-0">
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">No.</TableHead>
-                <TableHead>Nama Statistik</TableHead>
-                <TableHead>Subjek</TableHead>
-                <TableHead>Tanggal Diperbarui</TableHead>
+                <TableHead>Indikator</TableHead>
+                <TableHead>Tipe</TableHead>
+                <TableHead>Tahun</TableHead>
+                <TableHead>Nilai</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Berkas (CSV)</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -250,216 +289,146 @@ export default function DataStatistikDesa() {
               {statistics.map((stat, index) => (
                 <TableRow key={stat.id}>
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">{stat.title}</TableCell>
+                  <TableCell className="font-medium">{stat.indicator_name}</TableCell>
                   <TableCell>{stat.subject}</TableCell>
+                  <TableCell>{stat.year ?? '-'}</TableCell>
+                  <TableCell>{stat.value ?? '-'}</TableCell>
                   <TableCell>
-                    {format(stat.updatedDate, 'dd LLL yyyy', { locale: id })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(stat.status)}>
-                      {stat.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-600 truncate max-w-[200px]">
-                    <a
-                      href={stat.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "flex items-center hover:underline",
-                        stat.fileUrl ? "text-blue-600 hover:text-blue-800" : "text-muted-foreground cursor-not-allowed"
-                      )}
-                      onClick={(e) => !stat.fileUrl && e.preventDefault()} 
-                    >
-                      <FileText className="h-4 w-4 inline-block mr-1 flex-shrink-0" />
-                      <span className="truncate">{stat.fileName}</span>
-                    </a>
+                    <Badge variant={getStatusVariant(stat.status)}>{stat.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(stat)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(stat)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(stat.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(stat.id)}>
                       <Trash className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
+              {statistics.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-sm text-gray-500">
+                    Belum ada data statistik.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-      
-      {/* --- Pagination --- */}
-      <div className="flex items-center justify-between mt-4 px-2">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="rows-per-page" className="text-sm font-medium whitespace-nowrap">
-              Baris per halaman
-            </Label>
-            <Select defaultValue="10">
-              <SelectTrigger className="w-[80px]" id="rows-per-page">
-                <SelectValue placeholder="10" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            1-{statistics.length} dari {statistics.length} baris
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Input
-            type="text"
-            defaultValue="1"
-            className="w-12 h-9 text-center"
-            readOnly
-          />
-          <span className="text-sm text-muted-foreground">dari 1</span>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
 
-      {/* --- Dialog Form Tambah/Edit --- */}
-      <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingId ? 'Edit Data Statistik' : 'Tambah Data Statistik Baru'}
-            </DialogTitle>
+            <DialogTitle>{editingId ? 'Edit Data Statistik' : 'Tambah Data Statistik'}</DialogTitle>
+            <DialogDescription>
+              Lengkapi form berikut untuk {editingId ? 'memperbarui' : 'menambahkan'} data statistik.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-4">
-            {/* Judul/Nama Statistik */}
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Nama Statistik</Label>
+              <Label>Indikator</Label>
               <Input
-                id="title"
-                name="title"
-                value={formState.title}
+                name="indicator_name"
+                value={formState.indicator_name}
                 onChange={handleFormChange}
+                required
               />
             </div>
-
-            {/* Subjek */}
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subjek</Label>
-              <Select
-                name="subject"
-                value={formState.subject}
-                onValueChange={(value) => handleSelectChange('subject', value)}
-              >
-                <SelectTrigger id="subject">
-                  <SelectValue placeholder="Pilih subjek" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipe Statistik</Label>
+                <Select
+                  value={String(formState.statistic_type_id)}
+                  onValueChange={(val) => handleSelectChange('statistic_type_id', val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statisticTypes.map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)}>
+                        {type.name} ({type.category})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tahun</Label>
+                <Select
+                  value={String(formState.year)}
+                  onValueChange={(val) => handleSelectChange('year', val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
-            {/* Tanggal Diperbarui */}
-            <div className="space-y-2">
-              <Label htmlFor="updatedDate">Tanggal Diperbarui</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formState.updatedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formState.updatedDate ? (
-                      format(formState.updatedDate, 'dd LLL yyyy', { locale: id })
-                    ) : (
-                      <span>Pilih tanggal</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formState.updatedDate}
-                    onSelect={handleDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nilai</Label>
+                <Input
+                  name="value"
+                  type="number"
+                  step="0.01"
+                  value={formState.value}
+                  onChange={handleFormChange}
+                  placeholder="Masukkan nilai"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Satuan</Label>
+                <Input
+                  name="unit"
+                  value={formState.unit}
+                  onChange={handleFormChange}
+                  placeholder="contoh: orang, %"
+                />
+              </div>
             </div>
-
-            {/* Status */}
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                name="status"
-                value={formState.status}
-                onValueChange={(value) => handleSelectChange('status', value)}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Pilih status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Berkas CSV */}
-            <div className="space-y-2">
-              <Label htmlFor="file">Berkas CSV</Label>
-              {(editingId || formState.fileUrl) && formState.fileName && (
-                <div className="text-sm text-muted-foreground">
-                  Berkas saat ini: 
-                  <a 
-                    href={formState.fileUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="font-medium text-blue-600 hover:underline ml-1"
-                  >
-                    {formState.fileName}
-                  </a>
-                </div>
-              )}
+              <Label>Periode (opsional)</Label>
               <Input
-                id="file"
-                name="file"
-                type="file"
-                accept="text/csv, .csv" 
-                onChange={handleFileChange}
+                name="period"
+                value={formState.period || ''}
+                onChange={handleFormChange}
+                placeholder="contoh: Q1, Jan, Semester 1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Sumber</Label>
+              <Input
+                name="source"
+                value={formState.source || ''}
+                onChange={handleFormChange}
+                placeholder="contoh: Survei Rumah Tangga 2024"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Catatan</Label>
+              <Input
+                name="notes"
+                value={formState.notes || ''}
+                onChange={handleFormChange}
+                placeholder="Catatan tambahan"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <DialogClose asChild>
               <Button variant="outline">Batal</Button>
             </DialogClose>
-            <Button onClick={handleSubmit} className="bg-[#1C6EA4] hover:bg-[#154D71]">
-              Simpan
-            </Button>
+            <Button onClick={handleSubmit}>Simpan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

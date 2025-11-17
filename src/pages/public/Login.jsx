@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Lock, User, Eye, EyeOff } from 'lucide-react';
 import logoDc from '@/assets/images/logo_dc.png'; // Import logo desa
 import background from '@/assets/images/bg.jpg'; // Import gambar latar belakang
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
   const [adminUsername, setAdminUsername] = useState('');
@@ -17,21 +18,37 @@ export default function Login() {
   const [villagePassword, setVillagePassword] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [showVillagePassword, setShowVillagePassword] = useState(false);
-  
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate(); // Hook untuk navigasi
+  const { login } = useAuth();
+
+  const handleLogin = async (username, password, target) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const user = await login(username, password);
+      const roleName = user?.role?.role_name;
+      if (target === 'admin' || roleName === 'bps_admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/desa-dashboard/dashboard');
+      }
+    } catch (err) {
+      setError(err?.message || 'Login gagal, coba lagi');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    console.log("Admin login:", adminUsername, adminPassword);
-    // navigasi setelah login
-    navigate('/admin/dashboard'); 
+    handleLogin(adminUsername, adminPassword, 'admin');
   };
 
   const handleVillageLogin = (e) => {
     e.preventDefault();
-    console.log("Village login:", villageUsername, villagePassword);
-    // navigasi setelah login
-    navigate('/desa-dashboard/dashboard');
+    handleLogin(villageUsername, villagePassword, 'village');
   };
 
   const handleBack = () => {
@@ -137,8 +154,9 @@ export default function Login() {
                 <Button
                   type="submit"
                   className="w-full bg-[#33A1E0] hover:bg-[#1C6EA4] text-white h-11"
+                  disabled={loading}
                 >
-                  Login sebagai Perangkat Desa
+                  {loading ? 'Memproses...' : 'Login sebagai Perangkat Desa'}
                 </Button>
               </form>
             </TabsContent>
@@ -195,12 +213,16 @@ export default function Login() {
                 <Button
                   type="submit"
                   className="w-full bg-[#1C6EA4] hover:bg-[#154D71] text-white h-11"
+                  disabled={loading}
                 >
-                  Login sebagai Admin
+                  {loading ? 'Memproses...' : 'Login sebagai Admin'}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
+          {error && (
+            <p className="text-sm text-red-600 mt-4 text-center">{error}</p>
+          )}
         </CardContent>
       </Card>
     </div>
