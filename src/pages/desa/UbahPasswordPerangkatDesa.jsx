@@ -1,5 +1,6 @@
 // src/pages/dashboard/UbahPasswordPerangkatDesa.jsx
 import React, { useState } from 'react';
+import { dataApi } from '@/services/dataApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,22 +54,18 @@ export default function UbahPasswordPerangkatDesa() {
       return;
     }
 
-    // Simulasi API Call
+    // Call API
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // TODO: Panggil API update password perangkat desa (butuh password lama)
-      console.log('API: Mengubah password DESA SENDIRI');
-      console.log({ oldPassword, newPassword });
+      await dataApi.updatePassword(oldPassword, newPassword);
 
-      setSuccess('Password berhasil diperbarui.');
+      setSuccess('Password berhasil diperbarui. Silakan login kembali.');
       // Kosongkan form
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
     } catch (apiError) {
-      setError('Gagal memperbarui password. Silakan coba lagi.');
+      setError(apiError.message || 'Gagal memperbarui password. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }

@@ -1,8 +1,8 @@
-import { apiClient } from './apiClient';
+import { apiClient } from "./apiClient";
 
 export const dataApi = {
   async listVillages(params) {
-    const response = await apiClient.get('/villages', { params });
+    const response = await apiClient.get("/villages", { params });
     return {
       items: response?.data || [],
       meta: response?.meta || null,
@@ -15,9 +15,12 @@ export const dataApi = {
   },
 
   async listPublications(villageId, params) {
-    const response = await apiClient.get(`/villages/${villageId}/publications`, {
-      params,
-    });
+    const response = await apiClient.get(
+      `/villages/${villageId}/publications`,
+      {
+        params,
+      }
+    );
     return {
       items: response?.data || [],
       meta: response?.meta || null,
@@ -83,7 +86,9 @@ export const dataApi = {
   },
 
   async listStatisticTypes() {
-    const response = await apiClient.get('/statistic-types', { params: { per_page: 100 } });
+    const response = await apiClient.get("/statistic-types", {
+      params: { per_page: 100 },
+    });
     return response?.data || [];
   },
 
@@ -93,12 +98,18 @@ export const dataApi = {
   },
 
   async createGeospatial(villageId, payload) {
-    const response = await apiClient.post(`/villages/${villageId}/geospatial`, payload);
+    const response = await apiClient.post(
+      `/villages/${villageId}/geospatial`,
+      payload
+    );
     return response?.data;
   },
 
   async updateGeospatial(villageId, geoId, payload) {
-    const response = await apiClient.put(`/villages/${villageId}/geospatial/${geoId}`, payload);
+    const response = await apiClient.put(
+      `/villages/${villageId}/geospatial/${geoId}`,
+      payload
+    );
     return response?.data;
   },
 
@@ -139,14 +150,39 @@ export const dataApi = {
   },
 
   async dashboardAdmin() {
-    const response = await apiClient.get('/dashboard/admin');
+    const response = await apiClient.get("/dashboard/admin");
     return response?.data;
   },
 
   async dashboardVillage(villageId) {
-    const response = await apiClient.get('/dashboard/village', {
+    const response = await apiClient.get("/dashboard/village", {
       params: { village_id: villageId },
     });
     return response?.data;
+  },
+
+  async updatePassword(currentPassword, newPassword) {
+    const response = await apiClient.put("/auth/password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+      new_password_confirmation: newPassword,
+    });
+    return response?.data;
+  },
+
+  async resetUserPassword(userId, newPassword) {
+    const response = await apiClient.put(`/users/${userId}/reset-password`, {
+      password: newPassword,
+      password_confirmation: newPassword,
+    });
+    return response?.data;
+  },
+
+  async listUsers(params) {
+    const response = await apiClient.get("/users", { params });
+    return {
+      items: response?.data || [],
+      meta: response?.meta || null,
+    };
   },
 };

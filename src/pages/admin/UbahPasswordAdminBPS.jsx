@@ -1,5 +1,6 @@
 // src/pages/dashboard/UbahPasswordAdminBPS.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { dataApi } from '@/services/dataApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,15 +22,29 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 
-// TODO: Ganti ini dengan data fetch dari API
-const MOCK_DESA_LIST = [
-  { id: 'desa_sukamaju', name: 'Perangkat Desa Suka Maju' },
-  { id: 'desa_makmur', name: 'Perangkat Desa Makmur Jaya' },
-];
-
 export default function UbahPasswordAdminBPS() {
-  const [targetUser, setTargetUser] = useState('self'); // 'self' or desa.id
+  const [targetUser, setTargetUser] = useState('self'); // 'self' or user.id
+  const [villageUsers, setVillageUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   
+  // State untuk form
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  
+  // Fetch village officers on mount
+  useEffect(() => {
+    const fetchVillageOfficers = async () => {
+      try {
+        const { items } = await dataApi.listUsers({ role: 'village_officer' });
+        setVillageUsers(items || []);
+      } catch (err) {
+        console.error('Failed to fetch village officers:', err);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    fetchVillageOfficers();
+  }, []);
+
   // State untuk form
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -65,28 +80,26 @@ export default function UbahPasswordAdminBPS() {
       return;
     }
 
-    // Simulasi API Call
+    // Call API
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       if (targetUser === 'self') {
-        // TODO: Panggil API update password admin (butuh password lama)
-        console.log('API: Mengubah password ADMIN SENDIRI');
-        console.log({ oldPassword, newPassword });
+        // Update own password (requires old password)
+        await dataApi.updatePassword(oldPassword, newPassword);
+        setSuccess('Password berhasil diperbarui. Silakan login kembali.');
       } else {
-        // TODO: Panggil API reset password perangkat desa (tidak butuh password lama)
-        console.log(`API: Mereset password PERANGKAT DESA (ID: ${targetUser})`);
-        console.log({ newPassword });
+        // Reset village officer password (admin privilege)
+        await dataApi.resetUserPassword(targetUser, newPassword);
+        const user = villageUsers.find(u => u.id === parseInt(targetUser));
+        setSuccess(`Password untuk ${user?.full_name || 'pengguna'} berhasil direset.`);
       }
 
-      setSuccess('Password berhasil diperbarui.');
       // Kosongkan form
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
     } catch (apiError) {
-      setError('Gagal memperbarui password. Silakan coba lagi.');
+      setError(apiError.message || 'Gagal memperbarui password. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -114,12 +127,15 @@ export default function UbahPasswordAdminBPS() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="self">Saya (Administrator)</SelectItem>
-                  {/* TODO: Fetch list desa dari API */}
-                  {MOCK_DESA_LIST.map(desa => (
-                    <SelectItem key={desa.id} value={desa.id}>
-                      {desa.name}
-                    </SelectItem>
-                  ))}
+                  {loadingUsers ? (
+                    <SelectItem value="" disabled>Memuat...</SelectItem>
+                  ) : (
+                    villageUsers.map(user => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.full_name} - {user.village?.name || 'N/A'}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

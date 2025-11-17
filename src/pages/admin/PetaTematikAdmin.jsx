@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'; // Import CSS Leaflet
+import { dataApi } from '@/services/dataApi';
+import { villageService } from '@/services/villageService';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -60,27 +62,6 @@ import {
   Trash2 
 } from 'lucide-react';
 
-// --- MOCK DATA (Ganti dengan API) ---
-// TODO: Ini harusnya di-fetch dari API
-const MOCK_DESA_LIST = [
-  { id: 'desa_sukamaju', name: 'Desa Suka Maju' },
-  { id: 'desa_makmur', name: 'Desa Makmur Jaya' },
-  { id: 'desa_rantepao', name: 'Desa Rantepao (Toraja Utara)' },
-];
-
-// Data ini HARUSNYA di-fetch SETELAH memilih desa
-const MOCK_GEOSPATIAL = [
-  { id: 'geo001', name: 'Batas Wilayah Desa A', type: 'Polygon', source: 'data_desa_a.geojson' },
-  { id: 'geo002', name: 'Titik Lokasi Sekolah', type: 'Point', source: 'data_sekolah.geojson' },
-  { id: 'geo003', name: 'Jaringan Sungai', type: 'LineString', source: 'data_sungai.geojson' },
-];
-
-const MOCK_LAYERS = [
-  { id: 'layer01', name: 'Peta Kepadatan Penduduk', geoId: 'geo001', color: '#FF0000' }, // Merah
-  { id: 'layer02', name: 'Peta Fasilitas Pendidikan', geoId: 'geo002', color: '#0000FF' }, // Biru
-];
-// --- Akhir Mock Data ---
-
 // Fix icon default Leaflet (penting!)
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -94,14 +75,58 @@ export default function PetaTematikAdmin() {
   const mapRef = useRef(null); // Ref untuk map instance
   const layerGroupRef = useRef(null); // Ref untuk menampung semua layer GeoJSON
 
-  // --- STATE (Tetap sama) ---
+  // --- STATE ---
+  const [villages, setVillages] = useState([]);
+  const [loadingVillages, setLoadingVillages] = useState(true);
   const [selectedDesa, setSelectedDesa] = useState(null); 
-  const [geospatialData, setGeospatialData] = useState(MOCK_GEOSPATIAL);
-  const [layerData, setLayerData] = useState(MOCK_LAYERS);
+  const [geospatialData, setGeospatialData] = useState([]);
+  const [layerData, setLayerData] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null); 
-  const [currentItem, setCurrentItem] = useState(null); 
+  const [currentItem, setCurrentItem] = useState(null);
+
+  // Fetch villages on mount
+  useEffect(() => {
+    const fetchVillages = async () => {
+      try {
+        const data = await villageService.getAllVillages();
+        setVillages(data || []);
+      } catch (err) {
+        console.error('Failed to fetch villages:', err);
+      } finally {
+        setLoadingVillages(false);
+      }
+    };
+    fetchVillages();
+  }, []);
+
+  // Fetch geospatial data and thematic maps when village is selected
+  useEffect(() => {
+    if (!selectedDesa) {
+      setGeospatialData([]);
+      setLayerData([]);
+      return;
+    }
+
+    const fetchVillageData = async () => {
+      setLoadingData(true);
+      try {
+        const [geoData, mapsData] = await Promise.all([
+          dataApi.listGeospatial(selectedDesa),
+          dataApi.listThematicMaps(selectedDesa),
+        ]);
+        setGeospatialData(geoData || []);
+        setLayerData(mapsData || []);
+      } catch (err) {
+        console.error('Failed to fetch village data:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    fetchVillageData();
+  }, [selectedDesa]); 
 
   // --- PERBAIKAN 1: useEffect Pertama HANYA untuk Cleanup ---
   useEffect(() => {
@@ -152,47 +177,34 @@ export default function PetaTematikAdmin() {
     // 1. Bersihkan semua layer lama
     layerGroupRef.current.clearLayers();
 
-    // 2. Buat daftar promise untuk semua layer yang akan di-fetch
+    // 2. Render thematic maps layers
     const layerPromises = layerData.map(layer => {
-      // Cari data geospatial yang sesuai
-      const geoData = geospatialData.find(g => g.id === layer.geoId);
-      
-      if (geoData) {
-        // Fetch file GeoJSON dari folder /public
-        return fetch(`/${geoData.source}`) // (Contoh: fetch /data_desa_a.geojson)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`File ${geoData.source} tidak ditemukan.`);
-            }
-            return response.json();
-          })
-          .then(jsonData => {
-            // Buat layer GeoJSON dan beri style
-            const geoJsonLayer = L.geoJSON(jsonData, {
-              style: (feature) => ({
-                color: layer.color, // Gunakan warna dari MOCK_LAYERS
-                weight: 3,
+      // Backend returns geo_data as GeoJSON directly
+      if (layer.geo_data) {
+        try {
+          const geoJsonLayer = L.geoJSON(layer.geo_data, {
+            style: (feature) => ({
+              color: layer.color || '#FF0000',
+              weight: 3,
+              opacity: 1,
+              fillOpacity: 0.3
+            }),
+            pointToLayer: (feature, latlng) => {
+              return L.circleMarker(latlng, {
+                radius: 6,
+                fillColor: layer.color || '#FF0000',
+                color: "#000",
+                weight: 1,
                 opacity: 1,
-                fillOpacity: 0.3
-              }),
-              pointToLayer: (feature, latlng) => {
-                // Style kustom untuk titik (Point)
-                return L.circleMarker(latlng, {
-                  radius: 6,
-                  fillColor: layer.color,
-                  color: "#000",
-                  weight: 1,
-                  opacity: 1,
-                  fillOpacity: 0.8
-                });
-              }
-            });
-            return geoJsonLayer;
-          })
-          .catch(error => {
-            console.error('Gagal memuat layer:', error);
-            return null; // Kembalikan null jika gagal
+                fillOpacity: 0.8
+              });
+            }
           });
+          return Promise.resolve(geoJsonLayer);
+        } catch (error) {
+          console.error('Failed to render layer:', error);
+          return Promise.resolve(null);
+        }
       }
       return Promise.resolve(null);
     });
@@ -217,37 +229,49 @@ export default function PetaTematikAdmin() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (type, id) => {
-    // TODO: Panggil API Delete
-    if (type === 'geo') {
-      setGeospatialData(geospatialData.filter(item => item.id !== id));
-      console.log('Delete Geospatial:', id);
-    } else if (type === 'layer') {
-      setLayerData(layerData.filter(item => item.id !== id));
-      console.log('Delete Layer:', id);
+  const handleDelete = async (type, id) => {
+    if (!selectedDesa) return;
+    
+    try {
+      if (type === 'geo') {
+        await dataApi.deleteGeospatial(selectedDesa, id);
+        setGeospatialData(geospatialData.filter(item => item.id !== id));
+      } else if (type === 'layer') {
+        await dataApi.deleteThematicMap(selectedDesa, id);
+        setLayerData(layerData.filter(item => item.id !== id));
+      }
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Gagal menghapus data: ' + error.message);
     }
   };
   
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedDesa) return;
+
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
     
-    // TODO: Panggil API Create/Update (sertakan selectedDesa)
-    console.log('Form Submit:', modalType, data, `untuk Desa: ${selectedDesa}`);
-    
-    // Logika CRUD (Simulasi)
-    if (modalType === 'addGeo') {
-      setGeospatialData([...geospatialData, { id: `geo${Date.now()}`, ...data }]);
-    } else if (modalType === 'editGeo') {
-      setGeospatialData(geospatialData.map(item => item.id === currentItem.id ? { ...item, ...data } : item));
-    } else if (modalType === 'addLayer') {
-      setLayerData([...layerData, { id: `layer${Date.now()}`, ...data }]);
-    } else if (modalType === 'editLayer') {
-      setLayerData(layerData.map(item => item.id === currentItem.id ? { ...item, ...data } : item));
+    try {
+      if (modalType === 'addGeo') {
+        const newGeo = await dataApi.createGeospatial(selectedDesa, data);
+        setGeospatialData([...geospatialData, newGeo]);
+      } else if (modalType === 'editGeo') {
+        const updated = await dataApi.updateGeospatial(selectedDesa, currentItem.id, data);
+        setGeospatialData(geospatialData.map(item => item.id === currentItem.id ? updated : item));
+      } else if (modalType === 'addLayer') {
+        const newLayer = await dataApi.createThematicMap(selectedDesa, data);
+        setLayerData([...layerData, newLayer]);
+      } else if (modalType === 'editLayer') {
+        const updated = await dataApi.updateThematicMap(selectedDesa, currentItem.id, data);
+        setLayerData(layerData.map(item => item.id === currentItem.id ? updated : item));
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Form submit failed:', error);
+      alert('Gagal menyimpan data: ' + error.message);
     }
-    
-    setIsModalOpen(false); // Tutup modal
   };
 
   // 4. Render Komponen Modal (Dinamis)
@@ -283,8 +307,18 @@ export default function PetaTematikAdmin() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="geoId">Data Geospatial</Label>
-            {/* TODO: Ganti Input ini jadi <Select> dari MOCK_GEOSPATIAL */}
-            <Input id="geoId" name="geoId" defaultValue={currentItem?.geoId} placeholder="Pilih ID Geospatial" required />
+            <Select name="geospatial_data_id" defaultValue={currentItem?.geospatial_data_id?.toString()}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih Data Geospatial" />
+              </SelectTrigger>
+              <SelectContent>
+                {geospatialData.map(geo => (
+                  <SelectItem key={geo.id} value={geo.id.toString()}>
+                    {geo.name} ({geo.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="color">Warna (HEX)</Label>
@@ -335,11 +369,15 @@ export default function PetaTematikAdmin() {
               <SelectValue placeholder="Pilih desa..." />
             </SelectTrigger>
             <SelectContent>
-              {MOCK_DESA_LIST.map(desa => (
-                <SelectItem key={desa.id} value={desa.id}>
-                  {desa.name}
-                </SelectItem>
-              ))}
+              {loadingVillages ? (
+                <SelectItem value="" disabled>Memuat desa...</SelectItem>
+              ) : (
+                villages.map(desa => (
+                  <SelectItem key={desa.id} value={desa.id.toString()}>
+                    {desa.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </CardContent>
@@ -483,7 +521,7 @@ export default function PetaTematikAdmin() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Map className="h-5 w-5" />
-                Preview Peta: {MOCK_DESA_LIST.find(d => d.id === selectedDesa)?.name}
+                Preview Peta: {villages.find(d => d.id === parseInt(selectedDesa))?.name || 'Loading...'}
               </CardTitle>
               <CardDescription>
                 Preview peta otomatis dimuat berdasarkan data dan layer yang ada di tabel atas.
