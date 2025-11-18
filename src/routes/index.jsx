@@ -12,6 +12,10 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import DashboardAdmin from '@/pages/admin/DashboardAdmin';
 import UbahPasswordAdminBPS from '@/pages/admin/UbahPasswordAdminBPS'; 
 import PetaTematikAdmin from '@/pages/admin/PetaTematikAdmin';
+import ModulDesaAdmin from '@/pages/admin/ModulDesaAdmin';
+import DaftarDesaAdmin from '@/pages/admin/DaftarDesaAdmin';
+import PerangkatDesaAdmin from '@/pages/admin/PerangkatDesaAdmin';
+import PublikasiDesaAdmin from '@/pages/admin/PublikasiDesaAdmin';
 
 // --- Impor Halaman Perangkat Desa ---
 import DashboardDesa from '@/pages/desa/DashboardDesa';
@@ -57,10 +61,10 @@ function AppRoutes() {
           }
         >
           <Route path="dashboard" element={<DashboardAdmin />} />
-          <Route path="perangkat-desa" element={<Placeholder pageName="Admin: Perangkat Desa" />} />
-          <Route path="daftar-desa" element={<Placeholder pageName="Admin: Daftar Desa" />} />
-          <Route path="modul-desa" element={<Placeholder pageName="Admin: Modul Desa" />} />
-          <Route path="publikasi" element={<Placeholder pageName="Admin: Publikasi" />} />
+          <Route path="perangkat-desa" element={<PerangkatDesaAdmin pageName="Admin: Perangkat Desa" />} />
+          <Route path="daftar-desa" element={<DaftarDesaAdmin pageName="Admin: Daftar Desa" />} />
+          <Route path="modul-desa" element={<ModulDesaAdmin pageName="Admin: Modul Desa" />} />
+          <Route path="publikasi" element={<PublikasiDesaAdmin pageName="Admin: Publikasi" />} />
           <Route path="peta-tematik" element={<PetaTematikAdmin />} />
           <Route path="ubah-password" element={<UbahPasswordAdminBPS />} />
           <Route index element={<DashboardAdmin />} /> 
