@@ -1,250 +1,232 @@
-import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/components/ui/chart';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import {
-  BarChartHorizontalBig,
-  BookCopy,
-  FileText,
-  Map,
-  Activity,
-} from 'lucide-react';
-import { dashboardService } from '@/services/dashboardService';
+} from "@/components/ui/chart";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { BarChartHorizontalBig, BookCopy } from "lucide-react";
 
-// Color palette for category chart
-const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#14b8a6', '#6366f1', '#ef4444'];
+// --- Data Dummy untuk Chart ---
+const chartDataStatus = [
+  { name: "Batal Terbit", value: 21, fill: "hsl(var(--primary))" },
+  { name: "Lainnya", value: 79, fill: "hsl(var(--muted))" },
+];
+
+const chartDataKategori = [
+  { name: "Demografi", value: 16, fill: "#22c55e" }, // green-500
+  { name: "Ekonomi", value: 12, fill: "#3b82f6" }, // blue-500
+  { name: "Pendidikan", value: 15, fill: "#f59e0b" }, // amber-500
+  { name: "Pertanian", value: 25, fill: "#14b8a6" }, // teal-500
+  { name: "Lainnya", value: 32, fill: "#6366f1" }, // indigo-500
+];
+// ------------------------------
+
+// --- Data Dummy untuk Tabel ---
+const recentStats = [
+  {
+    id: 1,
+    indicator: "Jumlah Penduduk",
+    subject: "Demografi",
+    updated: "2025-11-15",
+    status: "Terverifikasi",
+  },
+  {
+    id: 2,
+    indicator: "Angka Partisipasi Sekolah",
+    subject: "Pendidikan",
+    updated: "2025-11-14",
+    status: "Perlu Validasi",
+  },
+  {
+    id: 3,
+    indicator: "Tingkat Kemiskinan",
+    subject: "Ekonomi",
+    updated: "2025-11-14",
+    status: "Terverifikasi",
+  },
+  {
+    id: 4,
+    indicator: "Angka Harapan Hidup",
+    subject: "Kesehatan",
+    updated: "2025-11-13",
+    status: "Ditolak",
+  },
+  {
+    id: 5,
+    indicator: "Produksi Padi",
+    subject: "Pertanian",
+    updated: "2025-11-12",
+    status: "Terverifikasi",
+  },
+];
+// ------------------------------
 
 export default function DashboardDesa() {
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        setLoading(true);
-        const data = await dashboardService.getVillageDashboard();
-        setDashboardData(data);
-      } catch (err) {
-        setError(err.message || 'Failed to load dashboard');
-        console.error('Dashboard error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-700">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const { village, summary, recentActivities, statisticsByCategory } =
-    dashboardData || {};
-
-  // Prepare chart data with colors
-  const chartData =
-    statisticsByCategory?.map((cat, idx) => ({
-      name: cat.category,
-      value: cat.count,
-      fill: COLORS[idx % COLORS.length],
-    })) || [];
+  
+  // Fungsi helper untuk menentukan warna Badge
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case "Terverifikasi":
+        return "default"; // hijau/biru 
+      case "Perlu Validasi":
+        return "secondary"; // abu-abu
+      case "Ditolak":
+        return "destructive"; // merah
+      default:
+        return "outline";
+    }
+  };
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800">
-          Dashboard Desa {village?.name || ''}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Kode: {village?.code || '-'} | Profile completeness:{' '}
-          {dashboardData?.profileCompleteness?.percentage || 0}%
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
 
-      {/* Summary Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Statistik</CardTitle>
-            <BarChartHorizontalBig className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-[#1C6EA4]">
-              {summary?.totalStatistics || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary?.statisticsThisYear || 0} tahun ini
-            </p>
-          </CardContent>
-        </Card>
+      {/* --- Baris Atas: Stat & Chart --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Kolom 1: Stat Cards (Stacked) */}
+        <div className="space-y-6">
+          <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Jumlah Indikator
+              </CardTitle>
+              <BarChartHorizontalBig className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-[#1C6EA4]">120</div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Jumlah Modul Desa
+              </CardTitle>
+              <BookCopy className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-[#1C6EA4]">6</div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Publikasi</CardTitle>
-            <FileText className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-[#1C6EA4]">
-              {summary?.totalPublications || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary?.publicationsThisYear || 0} tahun ini
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Peta Tematik</CardTitle>
-            <Map className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-[#1C6EA4]">
-              {summary?.thematicMaps || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary?.mapPoints || 0} titik peta
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Update Terakhir</CardTitle>
-            <Activity className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm font-medium text-gray-700">
-              {summary?.lastUpdate
-                ? new Date(summary.lastUpdate).toLocaleDateString('id-ID', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })
-                : 'Belum ada'}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Data terakhir</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Chart and Activities Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Category Distribution Chart */}
+        {/* Kolom 2: Chart 1 (Donut) */}
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Distribusi Kategori Statistik</CardTitle>
+            <CardTitle>Publikasi Desa</CardTitle>
             <CardDescription>
-              Jumlah indikator menurut kategori
+              Rekapitulasi publikasi desa menurut status
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {chartData.length > 0 ? (
-              <ChartContainer
-                config={{}}
-                className="mx-auto aspect-square max-h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Pie
-                      data={chartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-500">
-                Belum ada data statistik
-              </div>
-            )}
+            <ChartContainer
+              config={{}}
+              className="mx-auto aspect-square max-h-[250px]"
+            >
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie
+                    data={chartDataStatus}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={80}
+                    strokeWidth={5}
+                  >
+                    {chartDataStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* Recent Activities */}
+        {/* Kolom 3: Chart 2 (Pie) */}
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Aktivitas Terkini</CardTitle>
-            <CardDescription>10 aktivitas terakhir desa ini</CardDescription>
+            <CardTitle>Kategori Statistik</CardTitle>
+            <CardDescription>
+              Distribusi indikator menurut subjek
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {(recentActivities || []).map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start justify-between border-b pb-2 last:border-0"
-                >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {activity.user}
-                    </p>
-                    <p className="text-xs text-gray-600">{activity.description}</p>
-                  </div>
-                  <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                    {activity.timestamp
-                      ? new Date(activity.timestamp).toLocaleString('id-ID', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : '-'}
-                  </span>
-                </div>
-              ))}
-              {(!recentActivities || recentActivities.length === 0) && (
-                <p className="text-center text-gray-500 py-8">
-                  Belum ada aktivitas
-                </p>
-              )}
-            </div>
+            <ChartContainer
+              config={{}}
+              className="mx-auto aspect-square max-h-[250px]"
+            >
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie
+                    data={chartDataKategori}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={80}
+                  >
+                    {chartDataKategori.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
+
+      {/* --- Baris Bawah: Tabel Statistik Terkini --- */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle>Statistik Terkini</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">No.</TableHead>
+                <TableHead>Statistik (Indikator)</TableHead>
+                <TableHead>Subjek</TableHead>
+                <TableHead>Tanggal Diperbarui</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentStats.map((stat, index) => (
+                <TableRow key={stat.id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell className="font-medium">{stat.indicator}</TableCell>
+                  <TableCell>{stat.subject}</TableCell>
+                  <TableCell>{stat.updated}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(stat.status)}>
+                      {stat.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
