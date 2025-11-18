@@ -29,10 +29,27 @@ export default function Login() {
     try {
       const user = await login(username, password);
       const roleName = user?.role?.role_name;
-      if (target === 'admin' || roleName === 'bps_admin') {
+      
+      // Validate role matches the login tab
+      if (target === 'admin' && roleName !== 'bps_admin') {
+        setError('Akun ini bukan Admin BPS. Silakan login di tab Perangkat Desa.');
+        setLoading(false);
+        return;
+      }
+      
+      if (target === 'village' && roleName !== 'village_officer') {
+        setError('Akun ini bukan Perangkat Desa. Silakan login di tab Admin BPS.');
+        setLoading(false);
+        return;
+      }
+      
+      // Navigate based on role
+      if (roleName === 'bps_admin') {
         navigate('/admin/dashboard');
-      } else {
+      } else if (roleName === 'village_officer') {
         navigate('/desa-dashboard/dashboard');
+      } else {
+        setError('Role tidak dikenali. Hubungi administrator.');
       }
     } catch (err) {
       setError(err?.message || 'Login gagal, coba lagi');

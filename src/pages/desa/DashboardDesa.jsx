@@ -91,7 +91,7 @@ export default function DashboardDesa() {
         </h1>
         <p className="text-gray-600 mt-1">
           Kode: {village?.code || '-'} | Profile completeness:{' '}
-          {dashboardData?.profileCompleteness || 0}%
+          {dashboardData?.profileCompleteness?.percentage || 0}%
         </p>
       </div>
 
