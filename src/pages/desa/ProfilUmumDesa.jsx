@@ -20,8 +20,10 @@ import { villageProfileService } from '@/services/villageProfileService';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProfilUmumDesa() {
-  const { user } = useAuth();
-  const villageId = user?.village_id || user?.villageId;
+  const { user, activeVillageId } = useAuth();
+  // Prefer the explicit active village ID (set by AuthContext) and fall back
+  // to the user's associated village object if available.
+  const villageId = Number(activeVillageId) || user?.village?.id || user?.village_id || user?.villageId;
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,12 +52,14 @@ export default function ProfilUmumDesa() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!villageId) {
-        setError('Village ID not found');
+        setError('Village ID not found. Your account may not be attached to any village. Please contact your administrator.');
         setLoading(false);
         return;
       }
 
       try {
+        // Clear previous errors when we have a valid village ID
+        setError(null);
         setLoading(true);
         const data = await villageProfileService.getProfile(villageId);
         setProfile(data);
