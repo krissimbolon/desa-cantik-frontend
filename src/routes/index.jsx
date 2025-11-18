@@ -6,13 +6,24 @@ import Home from '@/pages/public/Home';
 import Login from '@/pages/public/Login';
 import Tentang from '@/pages/public/Tentang';
 import VillageDetail from '@/pages/public/VillageDetail';
-import VillageData from '@/pages/public/VillageData';
-import VillagePublikasi from '@/pages/public/VillagePublikasi';
 
-// --- Impor Halaman Internal ---
-import DashboardLayout from '@/layouts/DashboardLayout'; // <-- 1. Impor Layout
+// --- Impor Halaman Admin BPS ---
+import DashboardLayout from '@/layouts/DashboardLayout'; 
 import DashboardAdmin from '@/pages/admin/DashboardAdmin';
+import UbahPasswordAdminBPS from '@/pages/admin/UbahPasswordAdminBPS'; 
+import PetaTematikAdmin from '@/pages/admin/PetaTematikAdmin';
+
+// --- Impor Halaman Perangkat Desa ---
 import DashboardDesa from '@/pages/desa/DashboardDesa';
+import UbahPasswordPerangkatDesa from '@/pages/desa/UbahPasswordPerangkatDesa';
+import PetaTematikDesa from '@/pages/desa/PetaTematikDesa';
+import ProfilUmumDesa from '@/pages/desa/ProfilUmumDesa';
+import PublikasiDesa from '@/pages/desa/PublikasiDesa';
+import DataStatistikDesa from '@/pages/desa/DataStatistikDesa';
+
+// Protected Route Component
+import ProtectedRoute from '@/components/shared/ProtectedRoute';
+
 
 // Komponen placeholder
 const Placeholder = ({ pageName }) => (
@@ -34,32 +45,42 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/tentang" element={<Tentang />} />
         <Route path="/desa/:id" element={<VillageDetail />} />
-        <Route path="/desa/:id/data" element={<VillageData />} />
-        <Route path="/desa/:id/publikasi" element={<VillagePublikasi />} />
         <Route path="/lupa-password" element={<Placeholder pageName="Lupa Password" />} />
         
         {/* --- 2. Rute Layout Admin (Internal) --- */}
-        <Route path="/admin" element={<DashboardLayout />}>
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute allowedRoles={['bps_admin']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="dashboard" element={<DashboardAdmin />} />
           <Route path="perangkat-desa" element={<Placeholder pageName="Admin: Perangkat Desa" />} />
           <Route path="daftar-desa" element={<Placeholder pageName="Admin: Daftar Desa" />} />
           <Route path="modul-desa" element={<Placeholder pageName="Admin: Modul Desa" />} />
           <Route path="publikasi" element={<Placeholder pageName="Admin: Publikasi" />} />
-          <Route path="peta-tematik" element={<Placeholder pageName="Admin: Peta Tematik" />} />
-          <Route path="ubah-password" element={<Placeholder pageName="Admin: Ubah Password" />} />
-          {/* Rute fallback jika hanya /admin */}
+          <Route path="peta-tematik" element={<PetaTematikAdmin />} />
+          <Route path="ubah-password" element={<UbahPasswordAdminBPS />} />
           <Route index element={<DashboardAdmin />} /> 
         </Route>
         
         {/* --- 3. Rute Layout Perangkat Desa (Internal) --- */}
-        <Route path="/desa-dashboard" element={<DashboardLayout />}>
+        <Route 
+          path="/desa-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['village_officer']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="dashboard" element={<DashboardDesa />} />
-          <Route path="profil-umum" element={<Placeholder pageName="Desa: Profil Umum" />} />
-          <Route path="publikasi" element={<Placeholder pageName="Desa: Publikasi" />} />
-          <Route path="data-statistik" element={<Placeholder pageName="Desa: Data Statistik" />} />
-          <Route path="peta-tematik" element={<Placeholder pageName="Desa: Peta Tematik" />} />
-          <Route path="ubah-password" element={<Placeholder pageName="Desa: Ubah Password" />} />
-          {/* Rute fallback jika hanya /desa-dashboard */}
+          <Route path="profil-umum" element={<ProfilUmumDesa pageName="Desa: Profil Umum" />} />
+          <Route path="publikasi" element={<PublikasiDesa pageName="Desa: Publikasi" />} />
+          <Route path="data-statistik" element={<DataStatistikDesa pageName="Desa: Data Statistik" />} />
+          <Route path="peta-tematik" element={<PetaTematikDesa />} />
+          <Route path="ubah-password" element={<UbahPasswordPerangkatDesa />} />
           <Route index element={<DashboardDesa />} />
         </Route>
 

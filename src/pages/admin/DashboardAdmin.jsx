@@ -1,162 +1,299 @@
-import React from 'react';
-import AdminSidebar from '@/components/shared/AdminSidebar';
-import DashboardHeader from '@/components/shared/DashboardHeader';
-import Footer from '@/components/shared/Footer';
-
-// --- Data Dummy untuk Tabel Publikasi Terkini ---
-// Diambil langsung dari gambar referensi Anda
-const publicationsData = [
-  { id: 1, indikator: 'Jumlah Penduduk', desa: 'Nonongan Selatan', nilai: '2,543', satuan: 'Jiwa', tahun: 2024, kategori: 'Demografi', status: 'Terverifikasi' },
-  { id: 2, indikator: 'Angka Partisipasi Sekolah', desa: 'Nonongan Selatan', nilai: 87.5, satuan: 'Persen', tahun: 2024, kategori: 'Pendidikan', status: 'Perlu Validasi' },
-  { id: 3, indikator: 'Tingkat Kemiskinan', desa: 'Rinding Batu', nilai: 12.3, satuan: 'Persen', tahun: 2023, kategori: 'Ekonomi', status: 'Terverifikasi' },
-  { id: 4, indikator: 'Angka Harapan Hidup', desa: 'Rinding Batu', nilai: 68.2, satuan: 'Tahun', tahun: 2024, kategori: 'Kesehatan', status: 'Terverifikasi' },
-  { id: 5, indikator: 'Produksi Padi', desa: 'Nonongan Selatan', nilai: '1,258', satuan: 'Ton', tahun: 2024, kategori: 'Pertanian', status: 'Terverifikasi' },
-];
-
-// --- Komponen Helper untuk Kartu Statistik ---
-// Dibuat agar sesuai dengan style di referensi
-const StatCard = ({ title, value, titleBgColor = 'bg-[#33A1E0]' }) => (
-  <div className="bg-white rounded-lg shadow overflow-hidden">
-    <div className={`${titleBgColor} p-4`}>
-      <h3 className="text-white text-base font-semibold text-center">{title}</h3>
-    </div>
-    <div className="p-6">
-      <p className="text-4xl font-bold text-gray-800 text-center">{value}</p>
-    </div>
-  </div>
-);
-
-// --- Komponen Helper untuk Badge Status ---
-// Dibuat agar sesuai dengan style di referensi
-const StatusBadge = ({ status }) => {
-  let bgColor, textColor;
-
-  switch (status) {
-    case 'Terverifikasi':
-      bgColor = 'bg-green-100';
-      textColor = 'text-green-700';
-      break;
-    case 'Perlu Validasi':
-      bgColor = 'bg-yellow-100';
-      textColor = 'text-yellow-700';
-      break;
-    default:
-      bgColor = 'bg-gray-100';
-      textColor = 'text-gray-700';
-  }
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
-      {status}
-    </span>
-  );
-};
-
-// --- Komponen Helper untuk Badge Kategori ---
-const KategoriBadge = ({ kategori }) => (
-  <span className="px-3 py-1 rounded-full text-xs font-medium border border-blue-300 bg-blue-50 text-blue-600">
-    {kategori}
-  </span>
-);
-
+// src/pages/admin/DashboardAdmin.jsx
+import React, { useState, useEffect } from 'react';
+import { dashboardService } from '@/services/dashboardService';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  BarChart3,
+  Users,
+  FileText,
+  Map,
+  Activity,
+  TrendingUp,
+} from 'lucide-react';
 
 export default function DashboardAdmin() {
-  return (
-    <main className="flex-1 overflow-auto p-6 md:p-8 bg-gray-100">
-      <div className="space-y-8">
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-        {/* Bagian Atas: Kartu Statistik & Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Kolom 1: Kartu Statistik */}
-          <div className="lg:col-span-1 space-y-6">
-            <StatCard 
-              title="Jumlah Indikator" 
-              value="120" 
-              titleBgColor="bg-[#33A1E0]" 
-            />
-            <StatCard 
-              title="Jumlah Perangkat Desa"
-              value="6"
-              titleBgColor="bg-[#33A1E0]"
-            />
-          </div>
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const data = await dashboardService.getAdminDashboard();
+        setDashboardData(data);
+      } catch (err) {
+        setError(err.message || 'Failed to load dashboard');
+        console.error('Dashboard error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-          {/* Kolom 2: Chart Publikasi Desa (Placeholder) */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Publikasi Desa</h3>
-            <p className="text-sm text-gray-500 mb-4">Rekapitulasi publikasi desa menurut status dan kategori</p>
+    fetchDashboard();
+  }, []);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64 min-h-[260px]">
-              <div className="flex items-center justify-center bg-gray-50 rounded-lg border border-dashed">
-                <p className="text-gray-500">Placeholder Donut Chart</p>
-              </div>
-              <div className="flex items-center justify-center bg-gray-50 rounded-lg border border-dashed">
-                <p className="text-gray-500">Placeholder Pie Chart</p>
-              </div>
-            </div>
-          </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
-
-        {/* Bagian Bawah: Tabel Publikasi Terkini */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Publikasi Terkini</h3>
-            <p className="text-sm text-gray-500">Indikator pembangunan dan statistik desa terkini</p>
-          </div>
-
-          {/* Filter */}
-          <div className="p-4 md:p-6 flex flex-wrap gap-4 items-center border-b border-gray-200 bg-gray-50">
-            <select className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500">
-              <option>Semua Kategori</option>
-              <option>Demografi</option>
-              <option>Pendidikan</option>
-              <option>Ekonomi</option>
-            </select>
-            <select className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500">
-              <option>2024</option>
-              <option>2023</option>
-            </select>
-          </div>
-
-          {/* Tabel */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Indikator</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Desa</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Nilai</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Satuan</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Tahun</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                </tr>
-              </thead>
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {publicationsData.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.indikator}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.desa}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.nilai}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.satuan}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.tahun}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <KategoriBadge kategori={item.kategori} />
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <StatusBadge status={item.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
-
       </div>
-    </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { summary, recentActivities, villagesStatistics, monthlyActivities } =
+    dashboardData || {};
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <main className="flex-1 p-6">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Dashboard Admin BPS
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Overview sistem informasi statistik desa
+            </p>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Desa
+                </CardTitle>
+                <Map className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summary?.totalVillages || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {summary?.activeVillages || 0} aktif, {summary?.inactiveVillages || 0} non-aktif
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Pengguna
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summary?.totalUsers || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {summary?.activeUsers || 0} pengguna aktif
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Statistik
+                </CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {summary?.totalStatistics || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Data statistik desa
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Publikasi
+                </CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {summary?.totalPublications || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {summary?.totalThematicMaps || 0} peta tematik
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Villages Statistics Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Statistik Desa</CardTitle>
+              <CardDescription>
+                Top 10 desa berdasarkan jumlah statistik
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Desa</TableHead>
+                    <TableHead className="text-right">Statistik</TableHead>
+                    <TableHead className="text-right">Publikasi</TableHead>
+                    <TableHead className="text-right">Update Terakhir</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(villagesStatistics || []).map((village, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">
+                        {village.villageName}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {village.statisticsCount}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {village.publicationsCount}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-gray-500">
+                        {village.lastUpdated
+                          ? new Date(village.lastUpdated).toLocaleDateString('id-ID')
+                          : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!villagesStatistics || villagesStatistics.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-gray-500">
+                        Tidak ada data
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activities */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Aktivitas Terkini
+              </CardTitle>
+              <CardDescription>10 aktivitas terakhir dalam sistem</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(recentActivities || []).map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start justify-between border-b pb-3 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.user}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {activity.description}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                      {activity.timestamp
+                        ? new Date(activity.timestamp).toLocaleString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '-'}
+                    </span>
+                  </div>
+                ))}
+                {(!recentActivities || recentActivities.length === 0) && (
+                  <p className="text-center text-gray-500 py-4">
+                    Belum ada aktivitas
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Monthly Activities Chart */}
+          {monthlyActivities && monthlyActivities.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Aktivitas Bulanan
+                </CardTitle>
+                <CardDescription>
+                  Statistik dan publikasi 6 bulan terakhir
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Bulan</TableHead>
+                      <TableHead className="text-right">Statistik Baru</TableHead>
+                      <TableHead className="text-right">Statistik Update</TableHead>
+                      <TableHead className="text-right">Publikasi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlyActivities.map((month, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{month.month}</TableCell>
+                        <TableCell className="text-right">
+                          {month.statisticsCreated}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {month.statisticsUpdated}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {month.publicationsUploaded}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }

@@ -1,15 +1,14 @@
 // src/pages/public/Home.jsx
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom'; // Kita pakai Link untuk navigasi
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, TrendingUp, ArrowRight, BarChart3 } from 'lucide-react';
-import { villageService } from '@/services/villageService'; // Ambil data dari service
-import Navbar from '@/components/shared/Navbar'; // <-- IMPORT KOMPONEN BARU
-import Footer from '@/components/shared/Footer'; // <-- IMPORT KOMPONEN BARU
+import { villageService } from '@/services/villageService';
+import Navbar from '@/components/shared/Navbar';
+import Footer from '@/components/shared/Footer';
 import logoDc from '@/assets/images/logo_dc.png';
-import logoDesa from '@/assets/images/logo_desa.png'; // <-- Logo untuk "Tentang"
+import logoDesa from '@/assets/images/logo_desa.png';
 import background from '@/assets/images/bg.jpg';
     
 export default function Home() {
@@ -39,7 +38,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar - Sekarang menjadi komponen */}
       <Navbar scrollToVillages={scrollToVillages} />
 
       {/* Hero Section */}
@@ -79,7 +77,7 @@ export default function Home() {
         </div>
       </section>
 
-{/* Tentang Desa Cantik Section */}
+      {/* Tentang Desa Cantik Section */}
       <section className="relative w-screen h-screen overflow-hidden">
         <div className="absolute top-[-50%] left-1/2 transform -translate-x-1/2 w-[200%] h-[200%] bg-gradient-to-br from-[#4BADE4] via-[#33A1E0] to-[#1C6EA4] rounded-full"></div>
         <div className="relative z-10 container mx-auto px-6 h-full flex flex-col justify-center">
@@ -185,7 +183,6 @@ export default function Home() {
                             asChild
                             className="bg-gradient-to-r from-[#33A1E0] to-[#1C6EA4] hover:from-[#1C6EA4] hover:to-[#154D71] text-white px-8 py-2 rounded-full shadow-md hover:shadow-lg transition-all group"
                           >
-                            {/* Nanti kita buat rute detail desa */}
                             <Link to={`/desa/${village.id}`}>
                               Lihat Detail
                               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
