@@ -1,15 +1,37 @@
 // src/layouts/DashboardLayout.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import SidebarBPS from '@/components/shared/SidebarAdminBPS';
 import SidebarPerangkat from '@/components/shared/SidebarPerangkatDesa';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { dataApi } from '@/services/dataApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardLayout() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isAdmin = location.pathname.startsWith('/admin');
+  const { activeVillageId, setActiveVillageId } = useAuth();
+  const [villages, setVillages] = useState([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const fetchVillages = async () => {
+      try {
+        const res = await dataApi.listVillages({ per_page: 100 });
+        setVillages(res.items || []);
+        if (!activeVillageId && res.items?.[0]?.id) {
+          setActiveVillageId(String(res.items[0].id));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchVillages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
   const title = isAdmin ? 'Admin BPS' : 'Desa Suka Maju';
   const subtitle = 'Desa Cantik';
@@ -53,7 +75,26 @@ export default function DashboardLayout() {
 
         {/* CONTENT */}
         <div className="flex-1 flex flex-col min-h-0">
-          <main className="overflow-auto p-6">
+          <main className="overflow-auto p-6 space-y-4">
+            {isAdmin && (
+              <div className="flex justify-end">
+                <Select
+                  value={activeVillageId || undefined}
+                  onValueChange={(val) => setActiveVillageId(val)}
+                >
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue placeholder="Pilih Desa Aktif" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {villages.map((village) => (
+                      <SelectItem key={village.id} value={String(village.id)}>
+                        {village.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Outlet /> 
           </main>
         </div>

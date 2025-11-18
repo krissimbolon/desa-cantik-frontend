@@ -21,6 +21,9 @@ import ProfilUmumDesa from '@/pages/desa/ProfilUmumDesa';
 import PublikasiDesa from '@/pages/desa/PublikasiDesa';
 import DataStatistikDesa from '@/pages/desa/DataStatistikDesa';
 
+// Protected Route Component
+import ProtectedRoute from '@/components/shared/ProtectedRoute';
+
 
 // Komponen placeholder
 const Placeholder = ({ pageName }) => (
@@ -45,7 +48,14 @@ function AppRoutes() {
         <Route path="/lupa-password" element={<Placeholder pageName="Lupa Password" />} />
         
         {/* --- 2. Rute Layout Admin (Internal) --- */}
-        <Route path="/admin" element={<DashboardLayout />}>
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute allowedRoles={['bps_admin']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="dashboard" element={<DashboardAdmin />} />
           <Route path="perangkat-desa" element={<Placeholder pageName="Admin: Perangkat Desa" />} />
           <Route path="daftar-desa" element={<Placeholder pageName="Admin: Daftar Desa" />} />
@@ -57,7 +67,14 @@ function AppRoutes() {
         </Route>
         
         {/* --- 3. Rute Layout Perangkat Desa (Internal) --- */}
-        <Route path="/desa-dashboard" element={<DashboardLayout />}>
+        <Route 
+          path="/desa-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['village_officer']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="dashboard" element={<DashboardDesa />} />
           <Route path="profil-umum" element={<ProfilUmumDesa pageName="Desa: Profil Umum" />} />
           <Route path="publikasi" element={<PublikasiDesa pageName="Desa: Publikasi" />} />
