@@ -1,4 +1,4 @@
-// src/pages/dashboard/UbahPasswordAdminBPS.jsx
+// src/pages/admin/UbahPasswordAdminBPS.jsx
 import React, { useState, useEffect } from 'react';
 import { dataApi } from '@/services/dataApi';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,6 @@ import { AlertTriangle, CheckCircle } from 'lucide-react';
 export default function UbahPasswordAdminBPS() {
   const [targetUser, setTargetUser] = useState('self'); // 'self' or user.id
   const [villageUsers, setVillageUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
-  
-  // State untuk form
   const [loadingUsers, setLoadingUsers] = useState(true);
   
   // Fetch village officers on mount
