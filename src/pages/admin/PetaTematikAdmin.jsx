@@ -370,7 +370,7 @@ export default function PetaTematikAdmin() {
             </SelectTrigger>
             <SelectContent>
               {loadingVillages ? (
-                <SelectItem value="" disabled>Memuat desa...</SelectItem>
+                <SelectItem value="loading" disabled>Memuat desa...</SelectItem>
               ) : (
                 villages.map(desa => (
                   <SelectItem key={desa.id} value={desa.id.toString()}>

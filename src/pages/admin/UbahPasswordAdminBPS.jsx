@@ -125,7 +125,7 @@ export default function UbahPasswordAdminBPS() {
                 <SelectContent>
                   <SelectItem value="self">Saya (Administrator)</SelectItem>
                   {loadingUsers ? (
-                    <SelectItem value="" disabled>Memuat...</SelectItem>
+                    <SelectItem value="loading" disabled>Memuat...</SelectItem>
                   ) : (
                     villageUsers.map(user => (
                       <SelectItem key={user.id} value={user.id.toString()}>
