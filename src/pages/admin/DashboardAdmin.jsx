@@ -1,6 +1,7 @@
 // src/pages/admin/DashboardAdmin.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { dashboardService } from '@/services/dashboardService';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -23,37 +24,52 @@ import {
   Map,
   Activity,
   TrendingUp,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function DashboardAdmin() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
+  const loadDashboard = useCallback(
+    async (isInitial = false) => {
       try {
-        setLoading(true);
+        if (isInitial) {
+          setLoading(true);
+        } else {
+          setRefreshing(true);
+        }
         const data = await dashboardService.getAdminDashboard();
         setDashboardData(data);
+        setError(null);
       } catch (err) {
         setError(err.message || 'Failed to load dashboard');
         console.error('Dashboard error:', err);
       } finally {
-        setLoading(false);
+        if (isInitial) {
+          setLoading(false);
+        }
+        setRefreshing(false);
       }
-    };
+    },
+    []
+  );
 
-    fetchDashboard();
-  }, []);
+  useEffect(() => {
+    loadDashboard(true);
+  }, [loadDashboard]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-slate-200">
+          <CardContent className="flex flex-col items-center gap-4 py-10">
+            <div className="h-12 w-12 animate-spin rounded-full border-2 border-slate-200 border-b-blue-600" />
+            <p className="text-gray-600">Loading dashboard...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -67,6 +83,13 @@ export default function DashboardAdmin() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-700">{error}</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => loadDashboard(true)}
+            >
+              Coba lagi
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -79,14 +102,29 @@ export default function DashboardAdmin() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="flex-1 p-6">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Dashboard Admin BPS
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Overview sistem informasi statistik desa
-            </p>
+        <div className="space-y-6 max-w-6xl mx-auto">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">
+                Dashboard Admin BPS
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Overview sistem informasi statistik desa
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-slate-200"
+              onClick={() => loadDashboard(false)}
+              disabled={refreshing}
+            >
+              <RotateCcw
+                className={`h-4 w-4 ${
+                  refreshing ? 'animate-spin text-blue-600' : ''
+                }`}
+              />
+              {refreshing ? 'Menyegarkan...' : 'Muat ulang'}
+            </Button>
           </div>
 
           {/* Summary Cards */}
