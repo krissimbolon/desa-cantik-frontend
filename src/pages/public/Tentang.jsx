@@ -1,5 +1,5 @@
 // src/pages/public/Tentang.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Download, Users, Target, TrendingUp, Shield } from 'lucide-react';
@@ -8,7 +8,25 @@ import { Download, Users, Target, TrendingUp, Shield } from 'lucide-react';
 import Navbar from '@/components/shared/Navbar';
 import Footer from '@/components/shared/Footer';
 
+// --- MOCK DATA SERVICE (Simulasi) ---
+// Nanti bisa diganti dengan call ke API dashboard/public
+const fetchGlobalStats = () => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve([
+        { icon: Users, label: 'Desa Binaan', value: '150+' },
+        { icon: Target, label: 'Program Aktif', value: '45+' },
+        { icon: TrendingUp, label: 'Peningkatan Data', value: '85%' },
+        { icon: Shield, label: 'Kualitas Data', value: 'A+' },
+      ]);
+    }, 800);
+  });
+};
+
 const Tentang = () => {
+  const [stats, setStats] = useState([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+
   const pengelola = [
     { name: 'Pengelola 1', role: 'Koordinator Program' },
     { name: 'Pengelola 2', role: 'Fasilitator Lapangan' },
@@ -18,6 +36,21 @@ const Tentang = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Load Data Statistik saat komponen dimuat
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const data = await fetchGlobalStats();
+        setStats(data);
+      } catch (error) {
+        console.error("Gagal memuat statistik", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    loadStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -81,22 +114,28 @@ const Tentang = () => {
             </div>
           </div>
 
-          {/* Stats Section */}
+          {/* Stats Section (Sekarang Dinamis) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
-            {[
-              { icon: Users, label: 'Desa Binaan', value: '150+' },
-              { icon: Target, label: 'Program Aktif', value: '45+' },
-              { icon: TrendingUp, label: 'Peningkatan Data', value: '85%' },
-              { icon: Shield, label: 'Kualitas Data', value: 'A+' },
-            ].map((stat, index) => (
-              <Card key={index} className="text-center p-6 border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-gray-50">
-                <CardContent className="p-0">
-                  <stat.icon className="h-12 w-12 text-[#33A1E0] mx-auto mb-3" />
-                  <p className="text-3xl text-[#154D71] mb-2">{stat.value}</p>
-                  <p className="text-sm text-gray-600">{stat.label}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {loadingStats ? (
+               // Skeleton Loading Sederhana
+               Array(4).fill(0).map((_, i) => (
+                 <Card key={i} className="p-6 border-0 shadow-lg bg-gray-50 animate-pulse">
+                    <div className="h-12 w-12 bg-gray-200 rounded-full mx-auto mb-3"></div>
+                    <div className="h-8 w-20 bg-gray-200 mx-auto mb-2 rounded"></div>
+                    <div className="h-4 w-24 bg-gray-200 mx-auto rounded"></div>
+                 </Card>
+               ))
+            ) : (
+               stats.map((stat, index) => (
+                <Card key={index} className="text-center p-6 border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-gray-50">
+                  <CardContent className="p-0">
+                    <stat.icon className="h-12 w-12 text-[#33A1E0] mx-auto mb-3" />
+                    <p className="text-3xl text-[#154D71] mb-2">{stat.value}</p>
+                    <p className="text-sm text-gray-600">{stat.label}</p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Tujuan & Manfaat Section */}

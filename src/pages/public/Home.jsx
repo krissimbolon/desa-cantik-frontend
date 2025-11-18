@@ -118,7 +118,7 @@ export default function Home() {
               asChild
               className="bg-[#FFF9AF] hover:bg-[#FFE680] text-[#154D71] px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
             >
-              <Link to="/about">Pelajari Lebih Lanjut <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link to="/tentang">Pelajari Lebih Lanjut <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
           </div>
         </div>

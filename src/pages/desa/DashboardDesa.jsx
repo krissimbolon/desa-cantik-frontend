@@ -1,3 +1,5 @@
+// src/pages/desa/DashboardDesa.jsx
+import React from "react";
 import {
   Card,
   CardContent,
@@ -19,21 +21,23 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { BarChartHorizontalBig, BookCopy } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { BarChartHorizontalBig, BookCopy, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // --- Data Dummy untuk Chart ---
 const chartDataStatus = [
-  { name: "Batal Terbit", value: 21, fill: "hsl(var(--primary))" },
-  { name: "Lainnya", value: 79, fill: "hsl(var(--muted))" },
+  { name: "Terverifikasi", value: 79, fill: "#22c55e" }, // Hijau
+  { name: "Menunggu", value: 15, fill: "#f59e0b" }, // Kuning
+  { name: "Ditolak", value: 6, fill: "#ef4444" }, // Merah
 ];
 
 const chartDataKategori = [
-  { name: "Demografi", value: 16, fill: "#22c55e" }, // green-500
-  { name: "Ekonomi", value: 12, fill: "#3b82f6" }, // blue-500
-  { name: "Pendidikan", value: 15, fill: "#f59e0b" }, // amber-500
-  { name: "Pertanian", value: 25, fill: "#14b8a6" }, // teal-500
-  { name: "Lainnya", value: 32, fill: "#6366f1" }, // indigo-500
+  { name: "Demografi", value: 16, fill: "#22c55e" }, 
+  { name: "Ekonomi", value: 12, fill: "#3b82f6" }, 
+  { name: "Pendidikan", value: 15, fill: "#f59e0b" }, 
+  { name: "Pertanian", value: 25, fill: "#14b8a6" }, 
+  { name: "Lainnya", value: 32, fill: "#6366f1" }, 
 ];
 // ------------------------------
 
@@ -83,65 +87,96 @@ export default function DashboardDesa() {
   const getStatusVariant = (status) => {
     switch (status) {
       case "Terverifikasi":
-        return "default"; // hijau/biru 
+        return "default"; // hijau/biru di shadcn
       case "Perlu Validasi":
-        return "secondary"; // abu-abu
+        return "secondary"; // abu-abu/kuning
       case "Ditolak":
         return "destructive"; // merah
       default:
         return "outline";
     }
   };
+  
+  // Helper class tambahan untuk warna spesifik (opsional, jika variant default kurang pas)
+  const getStatusClassName = (status) => {
+     switch (status) {
+      case "Terverifikasi": return "bg-emerald-500 hover:bg-emerald-600 border-transparent text-white";
+      case "Perlu Validasi": return "bg-amber-500 hover:bg-amber-600 border-transparent text-white";
+      case "Ditolak": return "bg-red-500 hover:bg-red-600 border-transparent text-white";
+      default: return "";
+    }
+  };
 
   return (
-    <div className="p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+    <div className="p-6 space-y-6 w-full">
+      
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Dashboard Desa</h1>
+          <p className="text-muted-foreground">Ringkasan data dan aktivitas desa Anda.</p>
+        </div>
+      </div>
 
       {/* --- Baris Atas: Stat & Chart --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Kolom 1: Stat Cards (Stacked) */}
         <div className="space-y-6">
-          <Card className="shadow-md">
+          <Card className="shadow-sm border-l-4 border-l-[#1C6EA4]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Jumlah Indikator
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Indikator Statistik
               </CardTitle>
-              <BarChartHorizontalBig className="h-5 w-5 text-muted-foreground" />
+              <BarChartHorizontalBig className="h-5 w-5 text-[#1C6EA4]" />
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-[#1C6EA4]">120</div>
+              <div className="text-4xl font-bold text-gray-800">120</div>
+              <p className="text-xs text-muted-foreground mt-1">+5 dari bulan lalu</p>
             </CardContent>
           </Card>
-          <Card className="shadow-md">
+          
+          <Card className="shadow-sm border-l-4 border-l-emerald-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Jumlah Modul Desa
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Dokumen Publikasi
               </CardTitle>
-              <BookCopy className="h-5 w-5 text-muted-foreground" />
+              <BookCopy className="h-5 w-5 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-[#1C6EA4]">6</div>
+              <div className="text-4xl font-bold text-gray-800">24</div>
+              <p className="text-xs text-muted-foreground mt-1">6 dokumen tahun ini</p>
+            </CardContent>
+          </Card>
+
+           <Card className="shadow-sm border-l-4 border-l-purple-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Layer Peta
+              </CardTitle>
+              <FileText className="h-5 w-5 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-gray-800">8</div>
+              <p className="text-xs text-muted-foreground mt-1">2 diupdate minggu ini</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Kolom 2: Chart 1 (Donut) */}
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Publikasi Desa</CardTitle>
+        {/* Kolom 2: Chart Status (Donut) */}
+        <Card className="shadow-sm flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Status Data</CardTitle>
             <CardDescription>
-              Rekapitulasi publikasi desa menurut status
+              Persentase data berdasarkan status validasi
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 pb-0">
             <ChartContainer
               config={{}}
               className="mx-auto aspect-square max-h-[250px]"
             >
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent />} />
                   <Pie
                     data={chartDataStatus}
                     dataKey="value"
@@ -149,38 +184,45 @@ export default function DashboardDesa() {
                     innerRadius={60}
                     outerRadius={80}
                     strokeWidth={5}
+                    paddingAngle={2}
                   >
                     {chartDataStatus.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
+                  {/* Custom Legend sederhana di tengah bisa ditambahkan di sini jika perlu */}
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
+            <div className="flex justify-center gap-4 mt-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Valid</div>
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pending</div>
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div> Ditolak</div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Kolom 3: Chart 2 (Pie) */}
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Kategori Statistik</CardTitle>
+        {/* Kolom 3: Chart Kategori (Pie) */}
+        <Card className="shadow-sm flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Kategori Statistik</CardTitle>
             <CardDescription>
-              Distribusi indikator menurut subjek
+              Sebaran data per sektor
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 pb-0">
             <ChartContainer
               config={{}}
               className="mx-auto aspect-square max-h-[250px]"
             >
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent />} />
                   <Pie
                     data={chartDataKategori}
                     dataKey="value"
                     nameKey="name"
                     outerRadius={80}
+                    labelLine={false}
                   >
                     {chartDataKategori.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -189,35 +231,51 @@ export default function DashboardDesa() {
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
+             <div className="flex flex-wrap justify-center gap-2 mt-4 text-xs text-muted-foreground">
+                {chartDataKategori.map((item, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.fill}}></div> 
+                        {item.name}
+                    </div>
+                ))}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* --- Baris Bawah: Tabel Statistik Terkini --- */}
-      <Card className="shadow-lg">
+      <Card className="shadow-sm border">
         <CardHeader>
-          <CardTitle>Statistik Terkini</CardTitle>
+          <CardTitle>Aktivitas Upload Terkini</CardTitle>
+          <CardDescription>Data statistik yang baru saja diunggah atau diperbarui.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">No.</TableHead>
-                <TableHead>Statistik (Indikator)</TableHead>
+                <TableHead>Indikator</TableHead>
                 <TableHead>Subjek</TableHead>
-                <TableHead>Tanggal Diperbarui</TableHead>
+                <TableHead>Tanggal Update</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentStats.map((stat, index) => (
-                <TableRow key={stat.id}>
-                  <TableCell>{index + 1}</TableCell>
+                <TableRow key={stat.id} className="hover:bg-slate-50 transition-colors">
+                  <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                   <TableCell className="font-medium">{stat.indicator}</TableCell>
-                  <TableCell>{stat.subject}</TableCell>
-                  <TableCell>{stat.updated}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusVariant(stat.status)}>
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
+                      {stat.subject}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{stat.updated}</TableCell>
+                  <TableCell>
+                    <Badge 
+                        variant={getStatusVariant(stat.status)}
+                        className={cn("font-normal", getStatusClassName(stat.status))}
+                    >
                       {stat.status}
                     </Badge>
                   </TableCell>

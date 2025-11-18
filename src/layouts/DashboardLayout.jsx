@@ -12,8 +12,13 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function DashboardLayout() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // 1. Ambil objek 'user' dari Context
+  const { user, activeVillageId, setActiveVillageId } = useAuth();
+  
+  // Cek admin berdasarkan path URL (lebih aman untuk layout) atau role user
   const isAdmin = location.pathname.startsWith('/admin');
-  const { activeVillageId, setActiveVillageId } = useAuth();
+  
   const [villages, setVillages] = useState([]);
 
   useEffect(() => {
@@ -33,20 +38,40 @@ export default function DashboardLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
-  const title = isAdmin ? 'Admin BPS' : 'Desa Suka Maju';
+  // --- LOGIKA DINAMIS HEADER (PERBAIKAN DI SINI) ---
+
+  // 2. Tentukan Judul Kiri
+  // Jika Admin: Tampilkan 'Admin BPS'
+  // Jika Desa: Ambil nama desa dari `user.village.name`, fallback ke 'Dashboard Desa'
+  const title = isAdmin 
+    ? 'Admin BPS' 
+    : (user?.village?.name || 'Dashboard Desa');
+
   const subtitle = 'Desa Cantik';
-  const userName = isAdmin ? 'Administrator' : 'Perangkat Desa';
-  const userInitial = isAdmin ? 'A' : 'D';
+
+  // 3. Tentukan Nama User & Role (Kanan)
+  // Ambil nama dari `user.full_name`
+  const userName = user?.full_name || (isAdmin ? 'Administrator' : 'Perangkat Desa');
+  
+  // Initial
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  // Role Label (teks kecil di bawah nama)
+  // Ambil dari `user.role.role_name` jika ada, atau fallback manual
+  const userRoleLabel = user?.role?.role_name === 'bps_admin' 
+    ? 'Administrator' 
+    : 'Perangkat Desa';
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
 
-      {/* HEADER */}
+      {/* HEADER: Kirim props dinamis */}
       <Header
         title={title}
         subtitle={subtitle}
         userName={userName}
         userInitial={userInitial}
+        userRole={userRoleLabel} 
       />
 
       {/* MIDDLE SECTION */}
@@ -54,7 +79,7 @@ export default function DashboardLayout() {
 
         {/* SIDEBAR */}
         <div
-        className="shrink-0 flex flex-col min-h-0 bg-white border-r"
+          className="shrink-0 flex flex-col min-h-0 bg-white border-r"
           style={{
             width: isCollapsed ? '4rem' : '16rem',
             flexShrink: 0
@@ -76,16 +101,18 @@ export default function DashboardLayout() {
         {/* CONTENT */}
         <div className="flex-1 flex flex-col min-h-0">
           <main className="overflow-auto p-6 space-y-4">
+            
+            {/* Global Filter (Hanya untuk Admin BPS) */}
             {isAdmin && (
               <div className="flex justify-end">
                 <Select
                   value={activeVillageId || undefined}
                   onValueChange={(val) => setActiveVillageId(val)}
                 >
-                  <SelectTrigger className="w-[240px]">
+                  <SelectTrigger className="w-[240px] bg-white shadow-sm border-slate-200">
                     <SelectValue placeholder="Pilih Desa Aktif" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent align="end">
                     {villages.map((village) => (
                       <SelectItem key={village.id} value={String(village.id)}>
                         {village.name}
@@ -95,13 +122,16 @@ export default function DashboardLayout() {
                 </Select>
               </div>
             )}
+            
             <Outlet /> 
           </main>
         </div>
       </div>
 
       {/* FOOTER */}
-      <Footer scrollToVillages={() => {}} />
+      <div className="w-full">
+        <Footer scrollToVillages={() => {}} />
+      </div>
 
     </div>
   );

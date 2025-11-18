@@ -1,12 +1,15 @@
 // src/pages/public/VillageDetail.jsx
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-
-// 1. Impor MapContainer dan komponen Leaflet
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// --- Impor ikon dan komponen Pagination ---
-import { MapPin, Users, BarChart3, Image as ImageIcon, FileText, Layers, CalendarDays, ArrowRight, ListFilter, Landmark, HeartPulse, Briefcase, Download } from 'lucide-react';
+import { 
+  MapPin, Users, FileText, Layers, CalendarDays, 
+  ArrowRight, ListFilter, Landmark, HeartPulse, Briefcase, Download, 
+  ChevronLeft, ChevronRight, Eye 
+} from 'lucide-react';
+
 import {
   Pagination,
   PaginationContent,
@@ -16,8 +19,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-
-// --- Impor untuk Section Data ---
 import {
   Table,
   TableBody,
@@ -27,89 +28,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-// ---------------------------------------------------
 
-// --- Impor komponen Filter ---
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+
+// Services
 import { villageService } from '@/services/villageService';
+import { geoService } from '@/services/geoService'; // <-- KONEK KE BACKEND (MOCK)
+
 import VillageDetailNavbar from '@/components/shared/VillageDetailNavbar';
 import Footer from '@/components/shared/Footer';
 
-// --- Data Dummy GeoJSON  ---
-const dataLayer1 = {
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature", "properties": { "name": "Zona Kepadatan Tinggi", "value": 3000 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-6.200, 106.800], [-6.200, 106.810], [-6.210, 106.810], [-6.210, 106.800], [-6.200, 106.800]]] }
-    }
-  ]
-};
-const dataLayer2 = {
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature", "properties": { "name": "Zona Kepadatan Rendah", "value": 500 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-6.220, 106.820], [-6.220, 106.830], [-6.230, 106.830], [-6.230, 106.820], [-6.220, 106.820]]] }
-    }
-  ]
-};
-const styleLayer1 = { fillColor: "red", color: "#FF0000", weight: 2, opacity: 1, fillOpacity: 0.5 };
-const styleLayer2 = { fillColor: "green", color: "#008000", weight: 2, opacity: 1, fillOpacity: 0.5 };
-const layerOptions = [
-  { id: 'kepadatan', label: 'Kepadatan Penduduk', data: dataLayer1, style: styleLayer1 },
-  { id: 'lahan', label: 'Penggunaan Lahan', data: dataLayer2, style: styleLayer2 },
-];
-// -----------------------------------------------------------------
-
-// --- Data Dummy untuk Publikasi---
+// --- Data Dummy Publikasi & Statistik (Tetap Mock dulu karena Backend belum ready) ---
 const dummyPublications = [
-  {
-    id: 1,
-    title: 'Statistik Pelabuhan Perikanan 2024',
-    date: '7 November 2025',
-    description: 'Publikasi ini menyajikan data statistik terkini mengenai pelabuhan perikanan di seluruh Indonesia.',
-    imageUrl: 'https://placehold.co/300x400/BFDBFE/1E3A8A?text=Cover+1' 
-  },
-  {
-    id: 2,
-    title: 'Statistik Pendaratan Ikan Tradisional 2024',
-    date: '7 November 2025',
-    description: 'Data mengenai pendaratan ikan oleh nelayan tradisional, mencakup volume dan nilai produksi.',
-    imageUrl: 'https://placehold.co/300x400/A5F3FC/0E7490?text=Cover+2'
-  },
-  {
-    id: 3,
-    title: 'Benchmark Indeks Konstruksi (2016=100), 2018–2023',
-    date: '31 Oktober 2025',
-    description: 'Analisis dan benchmark indeks harga konstruksi sebagai acuan inflasi sektor infrastruktur.',
-    imageUrl: 'https://placehold.co/300x400/FDE68A/B45309?text=Cover+3'
-  },
-  {
-    id: 4,
-    title: 'Cerita Data Statistik untuk Indonesia',
-    date: '31 Oktober 2025',
-    description: 'Kajian mismatch antara pendidikan dan pekerjaan pemuda Indonesia, serta implikasinya.',
-    imageUrl: 'https://placehold.co/300x400/D1FAE5/065F46?text=Cover+4'
-  },
-  {
-    id: 5,
-    title: 'Statistik Perdagangan Luar Negeri Bulanan Impor',
-    date: '31 Oktober 2025',
-    description: 'Laporan bulanan data impor Indonesia, dirinci berdasarkan komoditas dan negara asal.',
-    imageUrl: 'https://placehold.co/300x400/FECACA/991B1B?text=Cover+5'
-  },
-  {
-    id: 6,
-    title: 'Direktori Industri Manufaktur 2025',
-    date: '31 Oktober 2025',
-    description: 'Direktori lengkap perusahaan industri manufaktur skala besar dan sedang di Indonesia.',
-    imageUrl: 'https://placehold.co/300x400/E9D5FF/5B21B6?text=Cover+6'
-  }
+  { id: 1, title: 'Statistik Pelabuhan Perikanan 2024', date: '2025-11-07', year: '2025', month: '11', description: 'Data statistik terkini pelabuhan perikanan.', imageUrl: 'https://placehold.co/300x400/BFDBFE/1E3A8A?text=Cover+1' },
+  { id: 2, title: 'Statistik Pendaratan Ikan Tradisional 2024', date: '2025-11-07', year: '2025', month: '11', description: 'Data pendaratan ikan nelayan tradisional.', imageUrl: 'https://placehold.co/300x400/A5F3FC/0E7490?text=Cover+2' },
+  { id: 3, title: 'Benchmark Indeks Konstruksi 2023', date: '2025-10-31', year: '2025', month: '10', description: 'Analisis indeks harga konstruksi.', imageUrl: 'https://placehold.co/300x400/FDE68A/B45309?text=Cover+3' },
+  { id: 4, title: 'Cerita Data Statistik Indonesia', date: '2025-10-31', year: '2025', month: '10', description: 'Kajian pendidikan dan pekerjaan pemuda.', imageUrl: 'https://placehold.co/300x400/D1FAE5/065F46?text=Cover+4' },
+  { id: 5, title: 'Statistik Impor Bulanan', date: '2024-10-31', year: '2024', month: '10', description: 'Laporan bulanan data impor.', imageUrl: 'https://placehold.co/300x400/FECACA/991B1B?text=Cover+5' },
+  { id: 6, title: 'Direktori Industri Manufaktur', date: '2024-09-30', year: '2024', month: '9', description: 'Direktori perusahaan industri manufaktur.', imageUrl: 'https://placehold.co/300x400/E9D5FF/5B21B6?text=Cover+6' }
 ];
 
 const monthOptions = [
@@ -122,330 +62,171 @@ const monthOptions = [
   { value: '11', label: 'November' }, { value: '12', label: 'Desember' },
 ];
 
-const yearOptions = ['2025', '2024', '2023', '2022'];
-// -------------------------------------------------------
+const yearOptions = ['All', '2025', '2024', '2023'];
 
-// --- Data Dummy untuk Section Data Statistik ---
-// 1. Data mentah untuk semua tabel
 const allTables = {
-  // Wilayah
-  rt_rw: {
-    title: 'Jumlah Rukun Tetangga dan Rukun Warga',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Tahun', 'Jumlah Rukun Tetangga (RT)', 'Jumlah Rukun Warga (RW)'],
-      rows: [
-          [2024, 0, 0],
-          [2025, 11, 0]
-      ]
-      }
-  },
-  aparatur: {
-    title: 'Jumlah Aparatur Lembang di Lembang Nonongan Selatan',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Jabatan', 'Jumlah Orang'],
-      rows: [['Kepala Lembang', 1], ['Sekretaris Lembang', 1], ['Kaur', 3], ['Kepala Dusun', 3]]
-    }
-  },
-  peraturan: {
-    title: 'Jumlah Peraturan Desa di Lembang Nonongan Selatan',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Jenis Peraturan', 'Jumlah'],
-      rows: [['Peraturan Desa (Perdes)', 5], ['Peraturan Kepala Desa (Perkades)', 12]]
-    }
-  },
-  // Penduduk
-  distribusi: {
-    title: 'Penduduk, Distribusi Persentase Penduduk, Kepadatan Penduduk, Rasio Jenis Kelamin',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Indikator', 'Nilai'],
-      rows: [['Jumlah Penduduk', '1.580 Jiwa'], ['Kepadatan', '500 jiwa/km²'], ['Rasio Jenis Kelamin', 102]]
-    }
-  },
-  keluarga: {
-    title: 'Jumlah Keluarga di Lembang Nonongan Selatan',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Tahun', 'Jumlah KK'],
-      rows: [[2021, 400], [2022, 410], [2023, 420]]
-    }
-  },
-  // Sosial
-  pendidikan: {
-    title: 'Jumlah Fasilitas Pendidikan Menurut Jenjang Pendidikan',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Jenjang', 'Jumlah'],
-      rows: [['PAUD', 3], ['SD Sederajat', 1], ['SMP Sederajat', 1]]
-    }
-  },
-  imunisasi: {
-    title: 'Cakupan Imunisasi Dasar Lengkap pada Bayi',
-    source: 'Dinas Kesehatan Kabupaten',
-    data: {
-      headers: ["Tahun", "BCG", "DPT", "Polio4", "HB0", "HB", "HiB3", "Campak/MMR", "Imunisasi Dasar Lengkap"],
-      rows: [
-        [2021, 41, 32, 30, 44, 32, 32, 45, 45],
-        [2022, 42, 43, 40, 40, 0, 0, 41, 41],
-        [2023, 31, 38, 35, 40, 38, 38, 48, 48]
-      ]
-    }
-  },
-  // Ekonomi
-  fasilitas_usaha: {
-    title: 'Jumlah Fasilitas Usaha (Toko, Penginapan, Warung, dll)',
-    source: 'Kantor Lembang Nonongan Selatan',
-    data: {
-      headers: ['Tahun', 'Toko/Warung Kelontong', 'Penginapan (losmen/wisma)', 'Hotel', 'Warung/Kedai Makanan Minuman', 'Restoran / Rumah Makan', 'Minimarket / swalayan', 'Pasar'],
-      rows: [
-        [2024, 7, 2, 0, 1, 0, 0, 0],
-        [2025, '', '', '', '', '', '', '']
-      ]
-    }
-  }
+  rt_rw: { title: 'Jumlah RT/RW', source: 'Kantor Lembang', data: { headers: ['Tahun', 'RT', 'RW'], rows: [[2024, 10, 3], [2025, 11, 3]] } },
+  aparatur: { title: 'Jumlah Aparatur', source: 'Kantor Lembang', data: { headers: ['Jabatan', 'Jumlah'], rows: [['Kepala Desa', 1], ['Sekdes', 1]] } },
+  distribusi: { title: 'Penduduk', source: 'Kantor Lembang', data: { headers: ['Indikator', 'Nilai'], rows: [['Laki-laki', 800], ['Perempuan', 780]] } },
 };
 
-// 2. Struktur menu untuk kolom kiri
 const subjectGroups = [
-  {
-    id: 'wilayah',
-    name: 'Wilayah dan Pemerintahan',
-    icon: Landmark,
-    tables: [
-      { id: 'rt_rw', title: allTables.rt_rw.title },
-      { id: 'aparatur', title: allTables.aparatur.title },
-      { id: 'peraturan', title: allTables.peraturan.title }
-    ]
-  },
-  {
-    id: 'penduduk',
-    name: 'Penduduk',
-    icon: Users,
-    tables: [
-      { id: 'distribusi', title: allTables.distribusi.title },
-      { id: 'keluarga', title: allTables.keluarga.title }
-    ]
-  },
-  {
-    id: 'sosial',
-    name: 'Sosial dan Kesejahteraan Rakyat',
-    icon: HeartPulse,
-    tables: [
-      { id: 'pendidikan', title: allTables.pendidikan.title },
-      { id: 'imunisasi', title: allTables.imunisasi.title } 
-    ]
-  },
-  {
-    id: 'ekonomi',
-    name: 'Ekonomi dan Pariwisata',
-    icon: Briefcase,
-    tables: [
-      { id: 'fasilitas_usaha', title: allTables.fasilitas_usaha.title }
-    ]
-  }
+  { id: 'wilayah', name: 'Wilayah & Pemerintahan', icon: Landmark, tables: [{ id: 'rt_rw', title: 'RT/RW' }, { id: 'aparatur', title: 'Aparatur' }] },
+  { id: 'penduduk', name: 'Kependudukan', icon: Users, tables: [{ id: 'distribusi', title: 'Distribusi Penduduk' }] },
 ];
-// -------------------------------------------------------
 
 export default function VillageDetail() {
+  const { id } = useParams();
   const [village, setVillage] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('tentang'); 
-  
-  const { id } = useParams(); 
+  const [activeSection, setActiveSection] = useState('tentang');
 
-  // --- State untuk Peta ---
-  const [activeLayerId, setActiveLayerId] = useState('kepadatan');
-  const [layerVisibility, setLayerVisibility] = useState({
-    kepadatan: true,
-    lahan: true,
-  });
+  // --- STATE PETA DARI SERVICE ---
+  const [mapData, setMapData] = useState([]); 
+  // State untuk kontrol lokal user (user bisa hide/show layer yang sudah diizinkan admin)
+  const [localLayerVisibility, setLocalLayerVisibility] = useState({});
 
-  // --- State untuk Publikasi ---
-  const [selectedYear, setSelectedYear] = useState('2025');
+  // --- State Publikasi ---
+  const [selectedYear, setSelectedYear] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  // ---------------------------------------
+  const ITEMS_PER_PAGE = 4;
 
-  // --- State untuk Data Statistik ---
+  // --- State Statistik ---
   const [activeSubjectId, setActiveSubjectId] = useState('wilayah');
-  const [activeTableId, setActiveTableId] = useState('rt_rw'); 
-  // --------------------------------------------
+  const [activeTableId, setActiveTableId] = useState('rt_rw');
 
+  // 1. Load Data Desa
   useEffect(() => {
     const loadData = async () => {
-      if (!id || id === "undefined") return; 
+      if (!id) return;
       try {
         setLoading(true);
-        const villageData = await villageService.getVillageById(id);
-        if (villageData) {
-          setVillage(villageData);
-        } else {
-          console.error("Desa tidak ditemukan");
-        }
-      } catch (error) {
-        console.error('Error loading village data:', error);
+        const data = await villageService.getVillageById(id);
+        setVillage(data || { 
+          name: 'Desa Contoh', 
+          district: 'Kecamatan Contoh', 
+          regency: 'Kabupaten Contoh',
+          population: 1500,
+          area: 10,
+          image: 'https://placehold.co/800x600?text=Desa+Image' 
+        });
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [id]); 
+  }, [id]);
 
-  // 5. Update scroll-spy untuk memantau semua section
+  // 2. LOAD PETA DARI GEO SERVICE
   useEffect(() => {
-    const sections = ['tentang', 'data', 'publikasi', 'peta', 'dokumentasi'];
-    
+    const loadMapData = async () => {
+      if (!id) return;
+      try {
+        // Ambil data layer dan geometri dari "Backend"
+        const layers = await geoService.getLayersByVillage(id);
+        const geos = await geoService.getGeospatialByVillage(id);
+
+        // Gabungkan data
+        const combinedData = layers.map(layer => {
+          const geo = geos.find(g => g.id === parseInt(layer.geoId));
+          return { ...layer, geometry: geo?.geometry };
+        }).filter(item => item.geometry); // Hanya tampilkan yang punya data geometri
+
+        setMapData(combinedData);
+
+        // Inisialisasi visibilitas lokal berdasarkan settingan Admin
+        const initialVisibility = {};
+        combinedData.forEach(layer => {
+          // Jika admin set true, user lihat true. Jika admin false, user lihat false.
+          initialVisibility[layer.id] = layer.isVisible; 
+        });
+        setLocalLayerVisibility(initialVisibility);
+
+      } catch (err) {
+        console.error("Gagal memuat peta:", err);
+      }
+    };
+    loadMapData();
+  }, [id]);
+
+  // 3. Scroll Spy
+  useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200; 
-      let currentSection = 'tentang'; 
+      const sections = ['tentang', 'data', 'publikasi', 'peta', 'dokumentasi'];
+      const scrollPosition = window.scrollY + 150;
       for (const sectionId of sections) {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          const { offsetTop, offsetHeight } = element;
-          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-            currentSection = sectionId;
-            break; 
-          }
+        const el = document.getElementById(sectionId);
+        if (el && scrollPosition >= el.offsetTop && scrollPosition < el.offsetTop + el.offsetHeight) {
+          setActiveSection(sectionId);
+          break;
         }
       }
-      setActiveSection(currentSection);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []); 
+  }, []);
 
   const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const yOffset = -120; 
-      const y = element.getBoundingClientRect().top + window.scrollY + yOffset;
+    const el = document.getElementById(sectionId);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 100;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
 
-  // --- 6. Handler untuk Peta ---
-  const handleLayerChange = (layerId) => setActiveLayerId(layerId);
-  const handleVisibilityChange = (layerId) => {
-    setLayerVisibility(prev => ({ ...prev, [layerId]: !prev[layerId] }));
-  };
-  const onEachFeature = (feature, layer) => {
-    if (feature.properties && feature.properties.name) {
-      layer.bindPopup(`<b>${feature.properties.name}</b><br>Nilai: ${feature.properties.value}`);
-    }
-  };
-  // ------------------------------
+  // Logic Filter Publikasi
+  const filteredPublications = useMemo(() => {
+    return dummyPublications.filter(pub => {
+      const matchYear = selectedYear === 'All' || pub.year === selectedYear;
+      const matchMonth = selectedMonth === 'all' || pub.month === selectedMonth;
+      return matchYear && matchMonth;
+    });
+  }, [selectedYear, selectedMonth]);
 
-// --- Handler untuk mengubah Subjek ---
-  const handleSubjectChange = (newSubjectId) => {
-    // 1. Cari data subjek yang baru
-    const newSubject = subjectGroups.find(s => s.id === newSubjectId);
-    if (!newSubject || newSubject.tables.length === 0) return; 
+  const totalPages = Math.ceil(filteredPublications.length / ITEMS_PER_PAGE);
+  const currentPublications = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPublications.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPublications, currentPage]);
 
-    // 2. Set subjek baru
-    setActiveSubjectId(newSubjectId);
-    
-    // 3. Set tabel aktif ke tabel PERTAMA dari subjek baru itu
-    setActiveTableId(newSubject.tables[0].id);
-  };
-  // ----------------------------------------------
+  useEffect(() => { setCurrentPage(1); }, [selectedYear, selectedMonth]);
 
-  // --- Fungsi untuk mengunduh CSV ---
-  const handleDownloadCSV = (tableData) => {
-    if (!tableData || !tableData.data) return;
-
-    const { headers, rows } = tableData.data;
-
-    // 1. Buat header CSV
-    const headerString = headers.join(',');
-
-    // 2. Buat baris CSV (menangani koma di dalam data)
-    const rowStrings = rows.map(row =>
-      row.map(cell => {
-        const strCell = String(cell);
-        // Jika sel berisi koma, bungkus dengan tanda kutip
-        if (strCell.includes(',')) {
-          return `"${strCell}"`;
-        }
-        return strCell;
-      }).join(',')
-    );
-
-    // 3. Gabungkan header dan baris dengan newline
-    const csvString = [headerString, ...rowStrings].join('\n');
-
-    // 4. Buat file dan picu unduhan
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-
-    // Buat nama file yang dinamis, cth: "jumlah_rukun_tetangga.csv"
-    const fileName = tableData.title.toLowerCase().replace(/[\s,]+/g, '_') + '.csv';
-    link.setAttribute('download', fileName);
-
-    // Tambahkan ke DOM, klik, lalu hapus
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  // ------------------------------------------
-
-  // --- Helper variables ---
-  // Cari subjek yang sedang aktif
+  // Logic Statistik
   const currentSubject = subjectGroups.find(s => s.id === activeSubjectId) || subjectGroups[0];
-  // Ambil data tabel yang sedang aktif
-  const currentTable = allTables[activeTableId] || allTables[subjectGroups[0].tables[0].id];
-  // ------------------------------------
+  const currentTable = allTables[activeTableId] || allTables[currentSubject.tables[0].id] || { title: 'Data tidak tersedia', source: '-', data: { headers: [], rows: [] } };
 
-  // Guard clause untuk 'id'
-  if (!id || id === "undefined") {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center text-gray-600">
-          Memuat ID...
-        </div>
-      </div>
-    );
-  }
-  
-  // Guard clause untuk 'loading'
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center text-gray-600">
-          Memuat data desa...
-        </div>
-      </div>
-    );
-  }
+  const handleSubjectChange = (val) => {
+    setActiveSubjectId(val);
+    const subj = subjectGroups.find(s => s.id === val);
+    if (subj && subj.tables.length > 0) setActiveTableId(subj.tables[0].id);
+  };
 
-  // Guard clause untuk 'village'
-  if (!village) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-600">Desa tidak ditemukan</p>
-          <Button asChild className="mt-4 bg-[#1C6EA4]">
-            <Link to="/">Kembali</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleDownloadCSV = () => {
+    alert("Fitur download CSV akan mengunduh data: " + currentTable.title);
+  };
+
+  // Logic Toggle Layer Lokal (User Publik)
+  const handleLocalLayerToggle = (layerId) => {
+    setLocalLayerVisibility(prev => ({ ...prev, [layerId]: !prev[layerId] }));
+  };
+
+  if (loading) return <div className="h-screen flex items-center justify-center">Memuat...</div>;
+  if (!village) return <div className="h-screen flex items-center justify-center">Desa tidak ditemukan.</div>;
 
   const documentationImages = [
     village.image,
-    'https://placehold.co/800x600/67e8f9/ffffff?text=Dokumentasi+1',
-    'https://placehold.co/800x600/fde047/ffffff?text=Dokumentasi+2',
-    'https://placehold.co/800x600/a3e635/ffffff?text=Dokumentasi+3',
+    'https://placehold.co/800x600/67e8f9/ffffff?text=Kegiatan+1',
+    'https://placehold.co/800x600/fde047/ffffff?text=Kegiatan+2',
+    'https://placehold.co/800x600/a3e635/ffffff?text=Kegiatan+3',
+    'https://placehold.co/800x600/fca5a5/ffffff?text=Kegiatan+4',
   ];
 
   return (
     <div className="min-h-screen bg-white">
+      {/* CSS untuk Marquee */}
       <style>
         {`
           @keyframes marquee-slow {
@@ -458,450 +239,294 @@ export default function VillageDetail() {
         `}
       </style>
 
-      {/* 7. Panggil Navbar (tanpa villageId) */}
-      <VillageDetailNavbar 
-        activeSection={activeSection}
-        scrollToSection={scrollToSection}
-      />
+      <VillageDetailNavbar activeSection={activeSection} scrollToSection={scrollToSection} />
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-[#4BADE4] via-[#33A1E0] to-[#1C6EA4] text-white py-16 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }}></div>
-        </div>
-        <div className="container mx-auto px-6 relative">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center pt-8"> 
-              <span className="bg-white/20 text-white px-6 py-2 text-lg mb-4 backdrop-blur-sm rounded-full inline-block">
-                Profil Desa
-              </span>
-              <h1 className="text-5xl mb-6 mt-4" style={{ textShadow: 'rgba(0,0,0,0.25) 2px 4px 8px' }}>
-                {village.name}
-              </h1>
-              <div className="flex items-center justify-center gap-8 text-lg flex-wrap">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                  <MapPin className="h-5 w-5" />
-                  <span>{village.district}, {village.regency}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                  <Users className="h-5 w-5" />
-                  <span>{village.population.toLocaleString('id-ID')} jiwa</span>
-                </div>
-              </div>
-            </div>
+      {/* HERO */}
+      <section className="relative bg-gradient-to-br from-[#4BADE4] via-[#33A1E0] to-[#1C6EA4] text-white py-20">
+        <div className="container mx-auto px-6 text-center relative z-10">
+          <span className="bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm font-medium mb-4 inline-block">Profil Desa</span>
+          <h1 className="text-5xl font-bold mb-4">{village.name}</h1>
+          <div className="flex justify-center gap-6 text-lg">
+            <div className="flex items-center gap-2"><MapPin className="h-5 w-5"/> {village.district}</div>
+            <div className="flex items-center gap-2"><Users className="h-5 w-5"/> {village.population} Jiwa</div>
           </div>
         </div>
       </section>
 
-      {/* Section "Tentang Desa" */}
-      <section id="tentang" className="py-12 bg-gradient-to-b from-white to-gray-50 scroll-mt-28">
+      {/* TENTANG */}
+      <section id="tentang" className="py-16 container mx-auto px-6">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="rounded-2xl overflow-hidden shadow-2xl">
+            <img src={village.image} alt={village.name} className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-[#154D71] mb-6">Tentang Desa</h2>
+            <p className="text-lg text-gray-600 leading-relaxed">
+              {village.name} adalah desa potensial di {village.district}. Memiliki luas wilayah {village.area} km² dengan kepadatan penduduk yang merata.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* DATA STATISTIK */}
+      <section id="data" className="py-16 bg-gray-50">
         <div className="container mx-auto px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl text-[#154D71] mb-4">Tentang Desa</h2>
-              <div className="w-24 h-1 bg-gradient-to-r from-[#33A1E0] to-[#1C6EA4] mx-auto rounded-full"></div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-12 items-start">
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-br from-[#33A1E0]/20 to-[#1C6EA4]/20 rounded-3xl blur-2xl"></div>
-                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
-                  <img
-                    src={village.image}
-                    alt={village.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <Card className="border-0 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-[#1C6EA4] to-[#33A1E0] text-white">
-                    <CardTitle className="text-2xl">{village.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <p className="text-lg leading-relaxed text-gray-700">
-                      {village.name} merupakan salah satu desa yang terletak di {village.district}, {village.regency}. 
-                      Desa ini juga memiliki julukan sebagai Desa Wisata. {village.name} berjarak sekitar 5 (lima) 
-                      kilometer dari Kota Kabupaten.
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-[#33A1E0] to-[#4BADE4] text-white">
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-6 w-6" />
-                      Penduduk
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <p className="text-lg leading-relaxed text-gray-700">
-                      Jumlah penduduk {village.name} mencapai <span className="text-[#1C6EA4]">{village.population.toLocaleString('id-ID')} jiwa</span> dengan 
-                      kepadatan {Math.round(village.population / village.area)} jiwa/km².
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* --- Section "Data" --- */}
-      <section id="data" className="py-12 bg-gray-50 scroll-mt-28">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl text-[#154D71] mb-4">Data Statistik</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#33A1E0] to-[#1C6EA4] mx-auto rounded-full"></div>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-[#154D71]">Data Statistik</h2>
+            <div className="w-20 h-1 bg-[#33A1E0] mx-auto mt-2 rounded-full"></div>
           </div>
 
-          {/* (1) Filter Subjek (Dropdown) */}
-          <Card className="mb-8 shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="w-full md:w-1/2">
-                <Label htmlFor="subject-filter" className="text-base font-semibold text-gray-700">Pilih Subjek Data</Label>
-                <Select value={activeSubjectId} onValueChange={handleSubjectChange}>
-                  <SelectTrigger id="subject-filter" className="w-full mt-2 text-base py-6">
-                    <SelectValue placeholder="Pilih subjek..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjectGroups.map((group) => (
-                      <SelectItem key={group.id} value={group.id} className="text-base py-2">
-                        {group.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* (2) Layout Dua Kolom */}
-          <div className="flex flex-col md:flex-row gap-8 relative">
-            
-            {/* KOLOM KIRI: Daftar Indikator/Tabel*/}
-            <div className="w-full md:w-1/3">
-              <Card className="border-0 shadow-lg sticky top-36">
-                <CardHeader className="bg-gray-100">
-                  <CardTitle className="text-lg text-[#154D71]">
-                    Statistik - {currentSubject.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-1">
-                  {currentSubject.tables.map((table) => (
-                    <Button
-                      key={table.id}
-                      variant="ghost"
-                      onClick={() => setActiveTableId(table.id)}
-                      className={cn(
-                        "w-full text-left justify-start h-auto p-3 text-base leading-snug whitespace-normal", 
-                        activeTableId === table.id
-                          ? "bg-[#1C6EA4]/10 text-[#1C6EA4] hover:bg-[#1C6EA4]/20 hover:text-[#1C6EA4]"
-                          : "text-gray-700 hover:bg-gray-100"
-                      )}
-                    > 
-                      {table.title}
-                    </Button>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm mb-8">
+             <Label className="mb-2 block">Pilih Kategori Data</Label>
+             <Select value={activeSubjectId} onValueChange={handleSubjectChange}>
+                <SelectTrigger className="w-full md:w-[300px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {subjectGroups.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+             </Select>
+          </div>
 
-            {/* KOLOM KANAN: Tampilan Tabel Data */}
-            <div className="w-full md:w-2/3">
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="bg-gray-100">
-                  <CardTitle className="text-lg text-[#154D71]">
-                    {currentTable.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+          <div className="flex flex-col md:flex-row gap-8">
+             <div className="w-full md:w-1/4 space-y-2">
+                {currentSubject.tables.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTableId(t.id)}
+                    className={cn(
+                      "w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                      activeTableId === t.id ? "bg-[#1C6EA4] text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100"
+                    )}
+                  >
+                    {t.title}
+                  </button>
+                ))}
+             </div>
+             <div className="w-full md:w-3/4">
+               <Card className="border-0 shadow-md">
+                 <CardHeader className="bg-gray-50 border-b pb-4">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg text-[#154D71]">{currentTable.title}</CardTitle>
+                      <Button size="sm" variant="outline" onClick={handleDownloadCSV}><Download className="w-4 h-4 mr-2"/> CSV</Button>
+                    </div>
+                 </CardHeader>
+                 <CardContent className="p-0">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-gray-50">
-                          {currentTable.data.headers.map((header, idx) => (
-                            <TableHead key={idx} className="font-bold text-gray-600">{header}</TableHead>
-                          ))}
+                        <TableRow>
+                          {currentTable.data.headers.map((h, i) => <TableHead key={i} className="font-bold">{h}</TableHead>)}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentTable.data.rows.map((row, rowIdx) => (
-                          <TableRow key={rowIdx}>
-                            {row.map((cell, cellIdx) => (
-                              <TableCell 
-                                key={cellIdx} 
-                                className={cellIdx === 0 ? "font-medium" : ""}
-                              >
-                                {cell}
-                              </TableCell>
-                            ))}
+                        {currentTable.data.rows.map((row, i) => (
+                          <TableRow key={i}>
+                            {row.map((cell, j) => <TableCell key={j}>{cell}</TableCell>)}
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  </div>
-                </CardContent>
-                <CardFooter className="bg-gray-50 p-4 mt-2 flex items-center justify-between">
-                  {/* Kiri: Sumber Data */}
-                  <p className="text-sm text-gray-600">
-                    <span className="font-semibold">Sumber:</span> {currentTable.source}
-                  </p>
-                  
-                  {/* Kanan: Tombol Unduh */}
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleDownloadCSV(currentTable)}
-                    className="bg-white hover:bg-gray-50"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Unduh CSV
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-
+                 </CardContent>
+                 <CardFooter className="bg-gray-50 text-xs text-gray-500 py-3">
+                    Sumber: {currentTable.source}
+                 </CardFooter>
+               </Card>
+             </div>
           </div>
         </div>
       </section>
-      {/* --- AKHIR MODIFIKASI --- */}
 
-      {/* --- Section "Publikasi" --- */}
-      <section id="publikasi" className="py-20 bg-white scroll-mt-28">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl text-[#154D71] mb-4">Publikasi</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#33A1E0] to-[#1C6EA4] mx-auto rounded-full">
+      {/* PUBLIKASI */}
+      <section id="publikasi" className="py-16 container mx-auto px-6">
+         <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-[#154D71]">Publikasi Desa</h2>
+            <div className="w-20 h-1 bg-[#33A1E0] mx-auto mt-2 rounded-full"></div>
+         </div>
+         
+         <div className="bg-gray-50 p-6 rounded-xl mb-8 flex flex-col md:flex-row gap-4 items-end">
+            <div className="w-full md:w-48">
+               <Label className="mb-2 block">Tahun</Label>
+               <Select value={selectedYear} onValueChange={setSelectedYear}>
+                 <SelectTrigger><SelectValue /></SelectTrigger>
+                 <SelectContent>
+                    {yearOptions.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                 </SelectContent>
+               </Select>
             </div>
+            <div className="w-full md:w-48">
+               <Label className="mb-2 block">Bulan</Label>
+               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                 <SelectTrigger><SelectValue /></SelectTrigger>
+                 <SelectContent>
+                    {monthOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                 </SelectContent>
+               </Select>
+            </div>
+            <div className="text-sm text-gray-500 pb-2 ml-auto">
+              Menampilkan {currentPublications.length} dari {filteredPublications.length} dokumen
+            </div>
+         </div>
+
+         {currentPublications.length > 0 ? (
+           <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {currentPublications.map(pub => (
+                <Card key={pub.id} className="flex overflow-hidden hover:shadow-lg transition-shadow border-0 bg-gray-50">
+                  <div className="w-32 bg-gray-200 shrink-0">
+                    <img src={pub.imageUrl} alt={pub.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-5 flex flex-col justify-between w-full">
+                    <div>
+                      <h3 className="font-bold text-[#154D71] line-clamp-2 mb-2">{pub.title}</h3>
+                      <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><CalendarDays className="w-3 h-3"/> {pub.date}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2">{pub.description}</p>
+                    </div>
+                    <Button size="sm" variant="link" className="px-0 text-[#33A1E0] self-start mt-2">
+                      Baca Selengkapnya <ArrowRight className="w-4 h-4 ml-1"/>
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+           </div>
+         ) : (
+           <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl">Tidak ada publikasi ditemukan.</div>
+         )}
+
+         {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink 
+                      isActive={currentPage === i + 1} 
+                      onClick={() => setCurrentPage(i + 1)}
+                      className="cursor-pointer"
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+         )}
+      </section>
+
+      {/* PETA TEMATIK (TERKONEKSI) */}
+      <section id="peta" className="py-16 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-10">
+             <h2 className="text-3xl font-bold text-[#154D71]">Peta Tematik</h2>
+             <div className="w-20 h-1 bg-[#33A1E0] mx-auto mt-2 rounded-full"></div>
+             <p className="mt-4 text-gray-600">Visualisasi data geospasial wilayah {village.name}.</p>
           </div>
 
-          {/* (1) Filter Section */}
-          <Card className="mb-10 shadow-lg border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ListFilter className="h-5 w-5" />
-                Filter Publikasi
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col md:flex-row gap-8">
-            {/* Dropdown Tahun */}
-              <div className="space-y-2 w-full md:w-[280px]">
-                <Label htmlFor="pub-year">Pilih Tahun</Label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger id="pub-year" className="w-full">
-                    <SelectValue placeholder="Pilih tahun..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {yearOptions.map(year => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="grid lg:grid-cols-4 gap-6">
+            {/* Kontrol Layer (Interaktif untuk Publik) */}
+            <Card className="lg:col-span-1 h-fit shadow-lg border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Layers className="w-5 h-5 text-[#154D71]"/> Layer Peta</CardTitle>
+                <CardDescription>Centang layer untuk ditampilkan</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mapData.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">Belum ada data peta dari admin.</p>
+                ) : (
+                  mapData.map(layer => (
+                    <div key={layer.id} className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Checkbox 
+                        id={`pub-layer-${layer.id}`} 
+                        checked={localLayerVisibility[layer.id] ?? false} // Default ambil dari state local
+                        onCheckedChange={() => handleLocalLayerToggle(layer.id)}
+                        // Jika admin set hidden (isVisible=false di backend), checkbox ini tetap bisa di-toggle user 
+                        // TAPI initial statenya tadi sudah kita ambil dari admin.
+                      />
+                      <div className="grid gap-1.5 leading-none cursor-pointer">
+                         <label 
+                            htmlFor={`pub-layer-${layer.id}`}
+                            className="text-sm font-medium leading-none cursor-pointer"
+                         >
+                            {layer.name}
+                         </label>
+                         <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: layer.color }}></div>
+                            <span className="text-xs text-muted-foreground">{layer.color}</span>
+                         </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
 
-              {/* Dropdown Bulan */}
-              <div className="space-y-2 w-full md:w-[280px]">
-                <Label htmlFor="pub-month">Pilih Bulan</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger id="pub-month" className="w-full">
-                    <SelectValue placeholder="Pilih bulan..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {monthOptions.map(month => (
-                      <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Map Container */}
+            <Card className="lg:col-span-3 overflow-hidden h-[500px] z-0 shadow-lg border-0">
+               <MapContainer center={[-2.9739, 119.9045]} zoom={13} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
+                <TileLayer
+                  attribution='&copy; OpenStreetMap'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {mapData.map(layer => (
+                   // Render HANYA jika localVisibility bernilai true
+                   localLayerVisibility[layer.id] && layer.geometry && (
+                    <GeoJSON 
+                      key={layer.id} 
+                      data={layer.geometry} 
+                      style={{ color: layer.color, fillColor: layer.color, weight: 2, fillOpacity: 0.4 }} 
+                      onEachFeature={(feature, l) => {
+                        l.bindPopup(`
+                          <div class="text-sm">
+                            <p class="font-bold mb-1">${layer.name}</p>
+                            <p>Tipe: ${layer.geometry.type}</p>
+                          </div>
+                        `);
+                      }} 
+                    />
+                   )
+                ))}
+              </MapContainer>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-          {/* (2) Content Grid (2x3) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {dummyPublications.map(pub => (
-              <Card key={pub.id} className="flex overflow-hidden shadow-lg border-0 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                {/* Kiri: Gambar Cover */}
-                <div className="w-1/3 flex-shrink-0 bg-gray-200">
+      {/* DOKUMENTASI (MARQUEE STYLE - KEMBALI KE AWAL) */}
+      <section id="dokumentasi" className="py-16 container mx-auto px-6">
+        <div className="text-center mb-10">
+           <h2 className="text-3xl font-bold text-[#154D71]">Dokumentasi</h2>
+           <div className="w-20 h-1 bg-[#33A1E0] mx-auto mt-2 rounded-full"></div>
+        </div>
+        
+        <div className="group w-full overflow-hidden rounded-xl border bg-white shadow-sm">
+          <div className="flex animate-marquee-slow [animation-play-state:running] group-hover:[animation-play-state:paused]">
+            {/* Duplikasi array untuk efek infinite loop yang mulus */}
+            {[...documentationImages, ...documentationImages].map((img, index) => (
+              <div key={index} className="flex-shrink-0 w-full md:w-1/3 p-2">
+                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative group/item cursor-pointer">
                   <img
-                    src={pub.imageUrl}
-                    alt={pub.title}
-                    className="w-full h-full object-cover"
+                    src={img}
+                    alt={`Dokumentasi ${index + 1}`}
+                    className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/20 transition-colors flex items-center justify-center">
+                     <Eye className="text-white opacity-0 group-hover/item:opacity-100 transition-opacity w-8 h-8 drop-shadow-lg" />
+                  </div>
                 </div>
-                {/* Kanan: Konten Teks */}
-                <div className="w-2/3 flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="text-lg leading-tight text-[#154D71]">{pub.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 pt-2 text-gray-500">
-                      <CalendarDays className="h-4 w-4" />
-                      {pub.date}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {pub.description}
-                    </p>
-                  </CardContent>
-                  <CardFooter className="pt-4">
-                    <Button asChild size="sm" className="ml-auto bg-[#1C6EA4] hover:bg-[#154D71]">
-                      <Link to="#">
-                        Baca Selengkapnya
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </div>
-              </Card>
+              </div>
             ))}
           </div>
-
-          {/* (3) Pagination */}
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)); }} />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive={currentPage === 1} onClick={(e) => { e.preventDefault(); setCurrentPage(1); }}>1</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive={currentPage === 2} onClick={(e) => { e.preventDefault(); setCurrentPage(2); }}>2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive={currentPage === 3} onClick={(e) => { e.preventDefault(); setCurrentPage(3); }}>3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive={currentPage === 4} onClick={(e) => { e.preventDefault(); setCurrentPage(4); }}>4</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(p => p + 1); }} />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-
         </div>
       </section>
 
-      {/* --- 10. ISI Section "Peta" --- */}
-      <section id="peta" className="py-20 bg-gray-50 scroll-mt-28">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl text-[#154D71] mb-4">Peta Tematik</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#33A1E0] to-[#1C6EA4] mx-auto rounded-full"></div>
-          </div>
-          
-          {/* Filter Card */}
-          <Card className="mb-6 shadow-lg border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Layers className="h-5 w-5" />
-                Filter Peta
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-4 items-center">
-              <div className="space-y-2">
-                <Label>Pilih Layer Utama</Label>
-                <Select value={activeLayerId} onValueChange={handleLayerChange}>
-                  <SelectTrigger className="w-[280px]">
-                    <SelectValue placeholder="Pilih layer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {layerOptions.map(opt => (
-                      <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 pt-6">
-                <Label>Visibilitas Layer</Label>
-                <div className="flex gap-4">
-                  {layerOptions.map(opt => (
-                    <div key={opt.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`check-detail-${opt.id}`}
-                        checked={layerVisibility[opt.id]} 
-                        onCheckedChange={() => handleVisibilityChange(opt.id)}
-                      />
-                      <Label
-                        htmlFor={`check-detail-${opt.id}`}
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        {opt.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Peta Card */}
-          <Card className="overflow-hidden shadow-lg border-0">
-            <CardContent className="p-0">
-              {!loading && (
-                <MapContainer 
-                  center={[-3.05, 119.93]} // koordinat Toraja Utara
-                  zoom={12} 
-                  scrollWheelZoom={true} 
-                  style={{ height: '600px', width: '100%' }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {layerVisibility.kepadatan && (
-                    <GeoJSON 
-                      data={dataLayer1} 
-                      style={styleLayer1} 
-                      onEachFeature={onEachFeature}
-                    />
-                  )}
-                  {layerVisibility.lahan && (
-                    <GeoJSON 
-                      data={dataLayer2} 
-                      style={styleLayer2} 
-                      onEachFeature={onEachFeature}
-                    />
-                  )}
-                </MapContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* --- Section "Dokumentasi"  --- */}
-      <section id="dokumentasi" className="py-20 bg-white scroll-mt-28">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl text-[#154D71] mb-4">Dokumentasi</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-[#33A1E0] to-[#1C6EA4] mx-auto rounded-full"></div>
-          </div>
-          
-          <div className="group w-full overflow-hidden">
-            <div className="flex animate-marquee-slow [animation-play-state:running] group-hover:[animation-play-state:paused]">
-              {[...documentationImages, ...documentationImages].map((img, index) => (
-                <div key={index} className="flex-shrink-0 w-full md:w-1/2 p-3">
-                  <Card className="overflow-hidden group/item cursor-pointer shadow-lg hover:shadow-2xl transition-all border-0">
-                    <div className="aspect-[3/2] bg-gray-200 overflow-hidden">
-                      <img
-                        src={img}
-                        alt={`Dokumentasi ${index + 1}`}
-                        className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
-                        onError={(e) => e.target.src = 'https://placehold.co/800x600/cccccc/ffffff?text=Gambar'}
-                      />
-                    </div>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <Footer scrollToVillages={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+      <Footer />
     </div>
   );
 }

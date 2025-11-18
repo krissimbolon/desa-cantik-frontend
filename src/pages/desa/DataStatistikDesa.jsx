@@ -1,6 +1,5 @@
 // src/pages/admin/DataStatistikDesa.jsx
-
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -53,7 +52,7 @@ const dummyStatistics = [
     updatedDate: new Date('2025-11-15'),
     status: 'Terverifikasi',
     fileName: 'data-penduduk-2024.csv',
-    fileUrl: '/mock-files/data-penduduk-2024.csv', // URL mock
+    fileUrl: '#',
   },
   {
     id: 2,
@@ -62,7 +61,7 @@ const dummyStatistics = [
     updatedDate: new Date('2025-11-10'),
     status: 'Menunggu Validasi',
     fileName: 'data-umkm-2024.csv',
-    fileUrl: '/mock-files/data-umkm-2024.csv', // URL mock
+    fileUrl: '#',
   },
   {
     id: 3,
@@ -71,16 +70,13 @@ const dummyStatistics = [
     updatedDate: new Date('2025-11-05'),
     status: 'Ditolak',
     fileName: 'data-fasilitas-pendidikan-2024.csv',
-    fileUrl: '/mock-files/data-fasilitas-pendidikan-2024.csv', // URL mock
+    fileUrl: '#',
   },
 ];
 
-// Opsi untuk form select
 const subjectOptions = ['Demografi', 'Ekonomi', 'Pendidikan', 'Kesehatan', 'Pemerintahan'];
 const statusOptions = ['Terverifikasi', 'Menunggu Validasi', 'Ditolak'];
-// --------------------
 
-// Nilai default untuk form 'Tambah'
 const defaultFormState = {
   title: '',
   subject: subjectOptions[0],
@@ -96,22 +92,32 @@ export default function DataStatistikDesa() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formState, setFormState] = useState(defaultFormState);
   const [editingId, setEditingId] = useState(null); 
+  
+  // --- State Filter (BARU) ---
+  const [filterSubject, setFilterSubject] = useState('all');
+  const [filterYear, setFilterYear] = useState('all');
 
-  // Fungsi helper untuk menentukan warna Badge
+  // Helper warna badge status
   const getStatusVariant = (status) => {
     switch (status) {
-      case "Terverifikasi":
-        return "default";
-      case "Menunggu Validasi":
-        return "secondary";
-      case "Ditolak":
-        return "destructive";
-      default:
-        return "outline";
+      case "Terverifikasi": return "default"; // Biasanya hitam/gelap di shadcn, bisa di-custom class
+      case "Menunggu Validasi": return "secondary";
+      case "Ditolak": return "destructive";
+      default: return "outline";
     }
   };
 
-  // --- Handlers untuk Form ---
+  // Helper custom class untuk warna badge lebih spesifik
+  const getStatusClassName = (status) => {
+    switch (status) {
+      case "Terverifikasi": return "bg-emerald-500 hover:bg-emerald-600 border-transparent text-white";
+      case "Menunggu Validasi": return "bg-amber-500 hover:bg-amber-600 border-transparent text-white";
+      case "Ditolak": return "bg-red-500 hover:bg-red-600 border-transparent text-white";
+      default: return "";
+    }
+  };
+
+  // --- Handlers Form ---
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormState((prev) => ({ ...prev, [name]: value }));
@@ -122,22 +128,24 @@ export default function DataStatistikDesa() {
   };
 
   const handleDateChange = (date) => {
-    setFormState((prev) => ({ ...prev, updatedDate: date }));
+    if (date) setFormState((prev) => ({ ...prev, updatedDate: date }));
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Buat object URL untuk file baru
+      const objectUrl = URL.createObjectURL(file);
       setFormState((prev) => ({ 
         ...prev, 
         file: file, 
         fileName: file.name,
-        fileUrl: URL.createObjectURL(file) 
+        fileUrl: objectUrl 
       }));
     }
   };
 
-  // --- Handlers untuk Dialog ---
+  // --- Handlers Dialog ---
   const handleOpenTambah = () => {
     setFormState(defaultFormState);
     setEditingId(null);
@@ -148,197 +156,221 @@ export default function DataStatistikDesa() {
     setEditingId(stat.id);
     setFormState({
       ...stat,
-      file: null, // Reset file input
+      file: null, // Reset input file fisik
     });
     setIsDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    if (formState.fileUrl && formState.file) {
-      URL.revokeObjectURL(formState.fileUrl);
+  const handleCloseDialog = (isOpen) => {
+    if (!isOpen) {
+      // Cleanup memory jika batal simpan
+      if (formState.fileUrl && formState.file) {
+        URL.revokeObjectURL(formState.fileUrl);
+      }
+      setFormState(defaultFormState);
+      setEditingId(null);
     }
-    setIsDialogOpen(false);
-    setEditingId(null);
-    setFormState(defaultFormState);
+    setIsDialogOpen(isOpen);
   };
 
-  // --- Handler untuk Aksi ---
+  // --- CRUD Actions ---
   const handleSubmit = () => {
     if (editingId) {
-      // Logika Edit
-      setStatistics(
-        statistics.map((stat) =>
-          stat.id === editingId
-            ? { ...stat, 
-                ...formState, 
-                fileName: formState.file ? formState.file.name : stat.fileName,
-                fileUrl: formState.file ? formState.fileUrl : stat.fileUrl
-              }
-            : stat
-        )
-      );
+      // EDIT
+      setStatistics(prev => prev.map(stat => 
+        stat.id === editingId 
+          ? { 
+              ...stat, 
+              ...formState, 
+              fileName: formState.file ? formState.fileName : stat.fileName,
+              fileUrl: formState.file ? formState.fileUrl : stat.fileUrl,
+              file: undefined // Bersihkan object File
+            } 
+          : stat
+      ));
     } else {
-      // Logika Tambah
+      // TAMBAH
       const newStatistic = {
         ...formState,
         id: Date.now(), 
-        fileName: formState.file ? formState.file.name : 'Belum ada berkas',
+        file: undefined
       };
       setStatistics([newStatistic, ...statistics]);
     }
     setIsDialogOpen(false);
-    setEditingId(null);
     setFormState(defaultFormState);
+    setEditingId(null);
   };
 
   const handleDelete = (id) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus data statistik ini?')) {
       const statToDelete = statistics.find(p => p.id === id);
-      if (statToDelete && statToDelete.fileUrl && statToDelete.fileUrl.startsWith('blob:')) {
+      if (statToDelete?.fileUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(statToDelete.fileUrl);
       }
       setStatistics(statistics.filter((stat) => stat.id !== id));
     }
   };
 
+  const availableSubjects = useMemo(() => {
+    const subjects = statistics.map(s => s.subject);
+    // Set otomatis menghapus duplikat, lalu kita urutkan abjad
+    return Array.from(new Set(subjects)).sort();
+  }, [statistics]);
+
+  // 2. Ambil Tahun Unik dari Data yang ada
+  const availableYears = useMemo(() => {
+    const years = statistics.map(s => s.updatedDate.getFullYear());
+    // Hapus duplikat dan urutkan dari terbaru (descending)
+    return Array.from(new Set(years)).sort((a, b) => b - a);
+  }, [statistics]);
+  
+  // --- Logika Filter ---
+  const filteredStatistics = statistics.filter((stat) => {
+    const matchSubject = filterSubject === 'all' || stat.subject === filterSubject;
+    const statYear = stat.updatedDate.getFullYear().toString();
+    const matchYear = filterYear === 'all' || statYear === filterYear;
+    return matchSubject && matchYear;
+  });
+
   return (
     <div className="p-8 space-y-6">
-      {/* --- Filter dan Tombol Tambah --- */}
+      
+      {/* --- Header & Filters --- */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex gap-4">
-          <Select defaultValue="all">
-            <SelectTrigger className="w-[180px]">
+          
+          {/* Filter Subjek Dinamis */}
+          <Select value={filterSubject} onValueChange={setFilterSubject}>
+            <SelectTrigger className="w-[180px] bg-white">
               <SelectValue placeholder="Semua Subjek" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Subjek</SelectItem>
-              {subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {availableSubjects.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select defaultValue="2025">
-            <SelectTrigger className="w-[120px]">
+
+          {/* Filter Tahun Dinamis */}
+          <Select value={filterYear} onValueChange={setFilterYear}>
+            <SelectTrigger className="w-[120px] bg-white">
               <SelectValue placeholder="Tahun" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="all">Semua</SelectItem>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
+
         </div>
-        <Button onClick={handleOpenTambah} className="bg-[#1C6EA4] hover:bg-[#154D71]">
+
+        <Button onClick={handleOpenTambah} className="bg-[#1C6EA4] hover:bg-[#154D71] shadow-sm">
           <Plus className="mr-2 h-4 w-4" />
           Tambah Statistik
         </Button>
       </div>
 
       {/* --- Tabel Statistik --- */}
-      <Card className="shadow-lg border-0">
-        <CardContent>
+      <Card className="shadow-lg border-0 rounded-xl overflow-hidden">
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-slate-50/80">
               <TableRow>
-                <TableHead className="w-[50px]">No.</TableHead>
-                <TableHead>Nama Statistik</TableHead>
-                <TableHead>Subjek</TableHead>
-                <TableHead>Tanggal Diperbarui</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Berkas (CSV)</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-[50px] font-semibold text-slate-600">No.</TableHead>
+                <TableHead className="font-semibold text-slate-600">Nama Statistik</TableHead>
+                <TableHead className="font-semibold text-slate-600">Subjek</TableHead>
+                <TableHead className="font-semibold text-slate-600">Tanggal Diperbarui</TableHead>
+                <TableHead className="font-semibold text-slate-600">Status</TableHead>
+                <TableHead className="font-semibold text-slate-600">Berkas (CSV)</TableHead>
+                <TableHead className="text-right font-semibold text-slate-600 pr-6">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {statistics.map((stat, index) => (
-                <TableRow key={stat.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">{stat.title}</TableCell>
-                  <TableCell>{stat.subject}</TableCell>
-                  <TableCell>
-                    {format(stat.updatedDate, 'dd LLL yyyy', { locale: id })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(stat.status)}>
-                      {stat.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-600 truncate max-w-[200px]">
-                    <a
-                      href={stat.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "flex items-center hover:underline",
-                        stat.fileUrl ? "text-blue-600 hover:text-blue-800" : "text-muted-foreground cursor-not-allowed"
+              {filteredStatistics.length > 0 ? (
+                filteredStatistics.map((stat, index) => (
+                  <TableRow key={stat.id} className="hover:bg-slate-50/50 transition-colors">
+                    <TableCell className="text-slate-500">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-slate-800">{stat.title}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                        {stat.subject}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-slate-600">
+                      {format(stat.updatedDate, 'dd LLL yyyy', { locale: id })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={getStatusVariant(stat.status)}
+                        className={cn("font-normal", getStatusClassName(stat.status))}
+                      >
+                        {stat.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {stat.fileUrl ? (
+                        <a
+                          href={stat.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline max-w-[150px] truncate"
+                          title={stat.fileName}
+                        >
+                          <FileText className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{stat.fileName}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">Tidak ada file</span>
                       )}
-                      onClick={(e) => !stat.fileUrl && e.preventDefault()} 
-                    >
-                      <FileText className="h-4 w-4 inline-block mr-1 flex-shrink-0" />
-                      <span className="truncate">{stat.fileName}</span>
-                    </a>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(stat)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(stat.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2 pr-6">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200"
+                        onClick={() => handleOpenEdit(stat)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                        onClick={() => handleDelete(stat.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-slate-500">
+                    Tidak ada data statistik yang ditemukan.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
       
       {/* --- Pagination --- */}
-      <div className="flex items-center justify-between mt-4 px-2">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="rows-per-page" className="text-sm font-medium whitespace-nowrap">
-              Baris per halaman
-            </Label>
-            <Select defaultValue="10">
-              <SelectTrigger className="w-[80px]" id="rows-per-page">
-                <SelectValue placeholder="10" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            1-{statistics.length} dari {statistics.length} baris
-          </span>
+      <div className="flex items-center justify-between px-2">
+        <div className="text-sm text-muted-foreground">
+          Menampilkan {filteredStatistics.length} data
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Input
-            type="text"
-            defaultValue="1"
-            className="w-12 h-9 text-center"
-            readOnly
-          />
-          <span className="text-sm text-muted-foreground">dari 1</span>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
+          <div className="text-sm font-medium">Halaman 1</div>
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled>
             <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -350,9 +382,12 @@ export default function DataStatistikDesa() {
             <DialogTitle>
               {editingId ? 'Edit Data Statistik' : 'Tambah Data Statistik Baru'}
             </DialogTitle>
+            <DialogDescription>
+              Lengkapi detail data statistik di bawah ini. Pastikan data yang diinput sudah valid.
+            </DialogDescription>
           </DialogHeader>
+          
           <div className="grid gap-6 py-4">
-            {/* Judul/Nama Statistik */}
             <div className="space-y-2">
               <Label htmlFor="title">Nama Statistik</Label>
               <Input
@@ -360,29 +395,46 @@ export default function DataStatistikDesa() {
                 name="title"
                 value={formState.title}
                 onChange={handleFormChange}
+                placeholder="Contoh: Data Penduduk Lembang 2025"
               />
             </div>
 
-            {/* Subjek */}
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subjek</Label>
-              <Select
-                name="subject"
-                value={formState.subject}
-                onValueChange={(value) => handleSelectChange('subject', value)}
-              >
-                <SelectTrigger id="subject">
-                  <SelectValue placeholder="Pilih subjek" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subjek</Label>
+                <Select
+                  name="subject"
+                  value={formState.subject}
+                  onValueChange={(value) => handleSelectChange('subject', value)}
+                >
+                  <SelectTrigger id="subject">
+                    <SelectValue placeholder="Pilih subjek" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  name="status"
+                  value={formState.status}
+                  onValueChange={(value) => handleSelectChange('status', value)}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Pilih status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Tanggal Diperbarui */}
             <div className="space-y-2">
-              <Label htmlFor="updatedDate">Tanggal Diperbarui</Label>
+              <Label>Tanggal Diperbarui</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -400,7 +452,7 @@ export default function DataStatistikDesa() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formState.updatedDate}
@@ -411,48 +463,30 @@ export default function DataStatistikDesa() {
               </Popover>
             </div>
 
-            {/* Status */}
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                name="status"
-                value={formState.status}
-                onValueChange={(value) => handleSelectChange('status', value)}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Pilih status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Berkas CSV */}
             <div className="space-y-2">
               <Label htmlFor="file">Berkas CSV</Label>
+              {/* Preview file saat ini */}
               {(editingId || formState.fileUrl) && formState.fileName && (
-                <div className="text-sm text-muted-foreground">
-                  Berkas saat ini: 
-                  <a 
-                    href={formState.fileUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="font-medium text-blue-600 hover:underline ml-1"
-                  >
-                    {formState.fileName}
-                  </a>
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 mb-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="truncate font-medium">{formState.fileName}</span>
+                  <span className="text-xs text-slate-500 ml-auto whitespace-nowrap">
+                    {formState.file ? '(File Baru)' : '(File Saat Ini)'}
+                  </span>
                 </div>
               )}
               <Input
                 id="file"
                 name="file"
                 type="file"
-                accept="text/csv, .csv" 
+                accept=".csv, text/csv, application/vnd.ms-excel"
                 onChange={handleFileChange}
+                className="cursor-pointer"
               />
+              <p className="text-[10px] text-slate-500">Format wajib: .csv</p>
             </div>
           </div>
+
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Batal</Button>

@@ -1,6 +1,5 @@
 // src/pages/admin/PublikasiDesa.jsx
-
-import { useState } from 'react';
+import { useState,useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -96,6 +95,22 @@ export default function PublikasiDesa() {
   const [formState, setFormState] = useState(defaultFormState);
   const [editingId, setEditingId] = useState(null); 
 
+  const [filterSubject, setFilterSubject] = useState('all');
+  const [filterYear, setFilterYear] = useState('all');
+
+  // 1. Ambil Subjek Unik dari Data yang ada
+  const availableSubjects = useMemo(() => {
+    const subjects = publications.map(s => s.subject);
+    return Array.from(new Set(subjects)).sort();
+  }, [publications]);
+
+  // 2. Ambil Tahun Unik dari Data yang ada
+  const availableYears = useMemo(() => {
+    const years = publications.map(s => s.releaseDate.getFullYear());
+    return Array.from(new Set(years)).sort((a, b) => b - a);
+  }, [publications]);
+
+
   // --- Handlers untuk Form ---
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -113,6 +128,7 @@ export default function PublikasiDesa() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const objectUrl = URL.createObjectURL(file);
       setFormState((prev) => ({ 
         ...prev, 
         file: file, 
@@ -159,7 +175,8 @@ export default function PublikasiDesa() {
                 ...formState, 
                 // Pastikan fileName dan fileUrl diperbarui dengan benar
                 fileName: formState.file ? formState.file.name : pub.fileName,
-                fileUrl: formState.file ? formState.fileUrl : pub.fileUrl
+                fileUrl: formState.file ? formState.fileUrl : pub.fileUrl,
+                file: undefined // Jangan simpan file asli di state publikasi
               }
             : pub
         )
@@ -191,27 +208,43 @@ export default function PublikasiDesa() {
     }
   };
 
+  // --- Logika Filter Data ---
+  const filteredPublications = publications.filter((pub) => {
+    const matchSubject = filterSubject === 'all' || pub.subject === filterSubject;
+    // Filter tahun berdasarkan releaseDate
+    const pubYear = pub.releaseDate.getFullYear().toString();
+    const matchYear = filterYear === 'all' || pubYear === filterYear;
+    
+    return matchSubject && matchYear;
+  });
   return (
     <div className="p-8 space-y-6">
       {/* --- Filter dan Tombol Tambah --- */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex gap-4">
-          <Select defaultValue="all">
-            <SelectTrigger className="w-[180px]">
+           {/* Filter Subjek Dinamis */}
+          <Select value={filterSubject} onValueChange={setFilterSubject}>
+            <SelectTrigger className="w-[180px] bg-white">
               <SelectValue placeholder="Semua Subjek" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Subjek</SelectItem>
-              {subjectOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {availableSubjects.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select defaultValue="2025">
-            <SelectTrigger className="w-[120px]">
+
+          {/* Filter Tahun Dinamis */}
+          <Select value={filterYear} onValueChange={setFilterYear}>
+            <SelectTrigger className="w-[120px] bg-white">
               <SelectValue placeholder="Tahun" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="all">Semua</SelectItem>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -222,121 +255,99 @@ export default function PublikasiDesa() {
       </div>
 
       {/* --- Tabel Publikasi --- */}
-      <Card className="shadow-lg border-0">
-        <CardContent>
+      <Card className="shadow-lg border-0 rounded-x1 overflow-hidden">
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="w-[50px]">No.</TableHead>
-                <TableHead>Judul Publikasi</TableHead>
-                <TableHead>Subjek</TableHead>
-                <TableHead>Tanggal Rilis</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Berkas</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="w-[50px] font-semibold text-slate-600">No.</TableHead>
+                <TableHead className="font-semibold text-slate-600">Judul Publikasi</TableHead>
+                <TableHead className="font-semibold text-slate-600">Subjek</TableHead>
+                <TableHead className="font-semibold text-slate-600">Tanggal Rilis</TableHead>
+                <TableHead className="font-semibold text-slate-600">Status</TableHead>
+                <TableHead className="font-semibold text-slate-600">Berkas</TableHead>
+                <TableHead className="text-right font-semibold text-slate-600 pr-6">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {publications.map((pub, index) => (
-                <TableRow key={pub.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">{pub.title}</TableCell>
-                  <TableCell>{pub.subject}</TableCell>
+              {filteredPublications.length > 0 ? (
+                filteredPublications.map((pub, index) => (
+                <TableRow key={pub.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableCell className="text-slate-500">{index + 1}</TableCell>
+                  <TableCell className="font-medium  text-slate-800">{pub.title}</TableCell>
                   <TableCell>
-                    {format(pub.releaseDate, 'dd LLL yyyy', { locale: id })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={pub.status === 'Rilis' ? 'default' : 'secondary'}>
-                      {pub.status}
-                    </Badge>
-                  </TableCell>
-                  
-                  <TableCell className="text-sm text-gray-600 truncate max-w-[200px]">
-                    <a
-                      href={pub.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "flex items-center hover:underline",
-                        pub.fileUrl ? "text-blue-600 hover:text-blue-800" : "text-muted-foreground cursor-not-allowed"
+                      <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                        {pub.subject}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-slate-600">
+                      {format(pub.releaseDate, 'dd LLL yyyy', { locale: id })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={pub.status === 'Rilis' ? 'default' : 'secondary'} className={cn("font-normal", pub.status === 'Rilis' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-400 hover:bg-slate-500")}>
+                        {pub.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {pub.fileUrl ? (
+                        <a
+                          href={pub.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline max-w-[150px] truncate"
+                          title={pub.fileName}
+                        >
+                          <FileText className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{pub.fileName}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">Tidak ada file</span>
                       )}
-                      // Mencegah klik jika tidak ada URL
-                      onClick={(e) => !pub.fileUrl && e.preventDefault()} 
-                    >
-                      <FileText className="h-4 w-4 inline-block mr-1 flex-shrink-0" />
-                      <span className="truncate">{pub.fileName}</span>
-                    </a>
-                  </TableCell>
-                  
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(pub)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(pub.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2 pr-6">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200"
+                        onClick={() => handleOpenEdit(pub)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                        onClick={() => handleDelete(pub.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-slate-500">
+                    Tidak ada publikasi yang ditemukan.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
       
       {/* --- Pagination --- */}
-      <div className="flex items-center justify-between mt-4 px-2">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="rows-per-page" className="text-sm font-medium whitespace-nowrap">
-              Baris per halaman
-            </Label>
-            <Select defaultValue="10">
-              <SelectTrigger className="w-[80px]" id="rows-per-page">
-                <SelectValue placeholder="10" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            {/* Logika pagination sederhana */}
-            1-{publications.length} dari {publications.length} baris
-          </span>
+      <div className="flex items-center justify-between px-2">
+        <div className="text-sm text-muted-foreground">
+          Menampilkan {filteredPublications.length} data
         </div>
-
         <div className="flex items-center gap-2">
-          {/* Tombol-tombol ini dinonaktifkan karena kita belum membuat logika pagination penuh */}
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
-          <Input
-            type="text"
-            defaultValue="1"
-            className="w-12 h-9 text-center"
-            readOnly
-          />
-          <span className="text-sm text-muted-foreground">dari 1</span>
-
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
+          <div className="text-sm font-medium">Halaman 1</div>
+          <Button variant="outline" size="icon" className="h-8 w-8" disabled>
             <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-            <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -348,6 +359,9 @@ export default function PublikasiDesa() {
             <DialogTitle>
               {editingId ? 'Edit Publikasi' : 'Tambah Publikasi Baru'}
             </DialogTitle>
+            <DialogDescription>
+              Isi detail dokumen publikasi di bawah ini. Klik simpan untuk perubahan.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
             {/* Judul */}
@@ -358,6 +372,7 @@ export default function PublikasiDesa() {
                 name="title"
                 value={formState.title}
                 onChange={handleFormChange}
+                placeholder="Masukkan judul publikasi"
               />
             </div>
 
@@ -398,7 +413,7 @@ export default function PublikasiDesa() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" allign="start">
                   <Calendar
                     mode="single"
                     selected={formState.releaseDate}
@@ -431,17 +446,13 @@ export default function PublikasiDesa() {
               <Label htmlFor="file">Berkas PDF</Label>
               {/* Tampilkan berkas saat ini atau pratinjau */}
               {(editingId || formState.fileUrl) && formState.fileName && (
-                <div className="text-sm text-muted-foreground">
-                  Berkas saat ini: 
-                  <a 
-                    href={formState.fileUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="font-medium text-blue-600 hover:underline ml-1"
-                  >
-                    {formState.fileName}
-                  </a>
-                </div>
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 mb-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="truncate font-medium">{formState.fileName}</span>
+                  <span className="text-xs text-slate-500 ml-auto whitespace-nowrap">
+                    {formState.file ? '(File Baru)' : '(File Saat Ini)'}
+                  </span>
+                  </div>
               )}
               <Input
                 id="file"
@@ -449,7 +460,9 @@ export default function PublikasiDesa() {
                 type="file"
                 accept="application/pdf"
                 onChange={handleFileChange}
+                className="cursor-pointer"
               />
+              <p className="text-[10px] text-slate-500">Maksimal ukuran file 5MB. Format .pdf</p>
             </div>
           </div>
           <DialogFooter>

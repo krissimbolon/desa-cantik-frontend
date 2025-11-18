@@ -50,7 +50,7 @@ export default function Footer({ scrollToVillages }) {
           <div>
             <h3 className="text-lg mb-3">Tautan Terkait</h3>
             <ul className="space-y-1.5 text-blue-100">
-              <li><a href="https://torajautkab.bps.go.id" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFF9AF] transition-colors">BPS Toraja Utara</a></li>
+              <li><a href="https://torutkab.bps.go.id/" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFF9AF] transition-colors">BPS Toraja Utara</a></li>
               <li><a href="https://sulsel.bps.go.id" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFF9AF] transition-colors">BPS Sulawesi Selatan</a></li>
               <li><a href="https://www.bps.go.id" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFF9AF] transition-colors">BPS RI</a></li>
             </ul>

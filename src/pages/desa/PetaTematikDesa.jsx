@@ -1,7 +1,7 @@
-// src/pages/dashboard/PetaTematikDesa.jsx
+// src/pages/desa/PetaTematikDesa.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css'; // Import CSS Leaflet
+import 'leaflet/dist/leaflet.css';
 
 import { Button } from '@/components/ui/button';
 import { 
@@ -34,38 +34,63 @@ import {
 import { 
   Dialog, 
   DialogContent, 
-  DialogDescription, 
   DialogFooter, 
   DialogHeader, 
-  DialogTitle,
+  DialogTitle, 
   DialogClose
 } from '@/components/ui/dialog';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { 
-  Map, 
+  Map as MapIcon, 
   Layers, 
   Database, 
   Plus, 
   MoreHorizontal, 
   Edit, 
-  Trash2 
+  Trash2,
+  FileJson,
+  MapPin,
+  PenTool,
+  Undo,
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
-// --- MOCK DATA (Ganti dengan API) ---
-// TODO: Data ini harus di-fetch dari API 
+// --- MOCK DATA (Simulasi Backend) ---
 const MOCK_GEOSPATIAL = [
-  { id: 'geo001', name: 'Batas Wilayah Desa A', type: 'Polygon', source: 'data_desa_a.geojson' },
-  { id: 'geo002', name: 'Titik Lokasi Sekolah', type: 'Point', source: 'data_sekolah.geojson' },
-  { id: 'geo003', name: 'Jaringan Sungai', type: 'LineString', source: 'data_sungai.geojson' },
+  { 
+    id: 1, 
+    name: 'Batas Wilayah Desa A', 
+    type: 'boundary', 
+    geometry: null, 
+    source: 'data_desa_a.geojson' // Fallback mock
+  },
+  { 
+    id: 2, 
+    name: 'Titik Lokasi Sekolah', 
+    type: 'point', 
+    geometry: null,
+    source: 'data_sekolah.geojson' // Fallback mock
+  },
 ];
 
+// Di Backend, data ini mungkin disimpan di 'properties' geospatial_data atau tabel terpisah
 const MOCK_LAYERS = [
-  { id: 'layer01', name: 'Peta Kepadatan Penduduk', geoId: 'geo001', color: '#FF0000' }, // Merah
-  { id: 'layer02', name: 'Peta Fasilitas Pendidikan', geoId: 'geo002', color: '#0000FF' }, // Biru
+  { id: 1, name: 'Peta Kepadatan Penduduk', geoId: 1, color: '#FF0000', isVisible: true },
+  { id: 2, name: 'Peta Fasilitas Pendidikan', geoId: 2, color: '#0000FF', isVisible: true },
 ];
-// --- Akhir Mock Data ---
 
+// Fix icon default Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -73,123 +98,181 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-
 export default function PetaTematikDesa() { 
+  // Refs
   const mapRef = useRef(null); 
   const layerGroupRef = useRef(null); 
+  const pickerMapRef = useRef(null);
+  const pickerLayerGroupRef = useRef(null);
 
-  // TODO: Fetch data ini dari API
+  // Data States
   const [geospatialData, setGeospatialData] = useState(MOCK_GEOSPATIAL);
   const [layerData, setLayerData] = useState(MOCK_LAYERS);
   
+  // UI States
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(null); // 'addGeo', 'editGeo', 'addLayer', 'editLayer'
-  const [currentItem, setCurrentItem] = useState(null); // Data untuk diedit
+  const [modalType, setModalType] = useState(null); 
+  const [currentItem, setCurrentItem] = useState(null); 
+  const [showMap, setShowMap] = useState(false); // Lazy load map
 
+  // Form States (untuk Modal)
+  const [formDataName, setFormDataName] = useState('');
+  const [formDataType, setFormDataType] = useState('point'); 
+  const [pickerMode, setPickerMode] = useState('upload'); // 'upload' | 'manual'
+  
+  // Data Entry States
+  const [uploadedGeoJson, setUploadedGeoJson] = useState(null);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
+  const [polygonPoints, setPolygonPoints] = useState([]); 
+
+  // --- CLEANUP MAPS ---
   useEffect(() => {
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+      if (pickerMapRef.current) { pickerMapRef.current.remove(); pickerMapRef.current = null; }
     };
   }, []); 
 
+  // --- RENDER MAIN MAP ---
   useEffect(() => {
-
-    if (!mapRef.current && document.getElementById('mapPreview')) {
-      mapRef.current = L.map('mapPreview', {
-        center: [-2.9739, 119.9045], 
-        zoom: 11,
-      });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(mapRef.current);
-
-      layerGroupRef.current = L.layerGroup().addTo(mapRef.current);
-    }
-
-    // Jangan lakukan apa-apa jika peta atau layer group belum siap
-    if (!mapRef.current || !layerGroupRef.current) return;
-
-    // 1. Bersihkan semua layer lama
-    layerGroupRef.current.clearLayers();
-
-    // 2. Buat daftar promise untuk semua layer yang akan di-fetch
-    const layerPromises = layerData.map(layer => {
-      // Cari data geospatial yang sesuai
-      const geoData = geospatialData.find(g => g.id === layer.geoId);
-      
-      if (geoData) {
-        // Fetch file GeoJSON dari folder /public
-        return fetch(`/${geoData.source}`) 
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`File ${geoData.source} tidak ditemukan.`);
-            }
-            return response.json();
-          })
-          .then(jsonData => {
-            // Buat layer GeoJSON dan beri style
-            const geoJsonLayer = L.geoJSON(jsonData, {
-              style: (feature) => ({
-                color: layer.color, // Gunakan warna dari MOCK_LAYERS
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 0.3
-              }),
-              pointToLayer: (feature, latlng) => {
-                // Style kustom untuk titik (Point)
-                return L.circleMarker(latlng, {
-                  radius: 6,
-                  fillColor: layer.color,
-                  color: "#000",
-                  weight: 1,
-                  opacity: 1,
-                  fillOpacity: 0.8
-                });
-              }
-            });
-            return geoJsonLayer;
-          })
-          .catch(error => {
-            console.error('Gagal memuat layer:', error);
-            return null; // Kembalikan null jika gagal
-          });
+    if (showMap && document.getElementById('mapPreview')) {
+      if (!mapRef.current) {
+        mapRef.current = L.map('mapPreview', { center: [-2.9739, 119.9045], zoom: 11 });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap',
+        }).addTo(mapRef.current);
+        layerGroupRef.current = L.layerGroup().addTo(mapRef.current);
       }
-      return Promise.resolve(null);
-    });
 
-    // 3. Setelah semua promise selesai
-    Promise.all(layerPromises).then(loadedLayers => {
-      loadedLayers.forEach(layer => {
-        if (layer) {
-          // Tambahkan layer yang berhasil dimuat ke layer group
-          layerGroupRef.current.addLayer(layer);
+      if (layerGroupRef.current) {
+        layerGroupRef.current.clearLayers();
+        
+        const layerPromises = layerData.map(layer => {
+          if (!layer.isVisible) return Promise.resolve(null);
+
+          const geoData = geospatialData.find(g => g.id === parseInt(layer.geoId));
+          if (geoData) {
+            // Jika data baru (upload/gambar), geometry ada di objek. Jika data lama (mock), fetch file.
+            const fetchSource = geoData.geometry 
+              ? Promise.resolve(geoData.geometry) 
+              : fetch(`/${geoData.source}`).then(res => res.json());
+
+            return fetchSource.then(jsonData => {
+                const geoJsonLayer = L.geoJSON(jsonData, {
+                  style: () => ({ color: layer.color, weight: 3, opacity: 1, fillOpacity: 0.3 }),
+                  pointToLayer: (feature, latlng) => {
+                    return L.circleMarker(latlng, { radius: 6, fillColor: layer.color, color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 });
+                  }
+                });
+                return geoJsonLayer;
+              }).catch(err => null);
+          }
+          return Promise.resolve(null);
+        });
+
+        Promise.all(layerPromises).then(loadedLayers => {
+          loadedLayers.forEach(layer => { if (layer) layerGroupRef.current.addLayer(layer); });
+        });
+      }
+    } else {
+      // Hancurkan map jika disembunyikan
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; layerGroupRef.current = null; }
+    }
+  }, [showMap, layerData, geospatialData]); 
+
+  // --- RENDER PICKER MAP (MODAL) ---
+  useEffect(() => {
+    if (isModalOpen && pickerMode === 'manual' && document.getElementById('pickerMap')) {
+      if (pickerMapRef.current) { pickerMapRef.current.remove(); pickerMapRef.current = null; }
+      
+      const map = L.map('pickerMap', { center: [-2.9739, 119.9045], zoom: 13 });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      const layerGroup = L.layerGroup().addTo(map);
+      
+      pickerMapRef.current = map;
+      pickerLayerGroupRef.current = layerGroup;
+
+      map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        if (formDataType === 'point') {
+          setManualLat(lat.toFixed(6));
+          setManualLng(lng.toFixed(6));
+          layerGroup.clearLayers();
+          L.marker([lat, lng]).addTo(layerGroup);
+        } else {
+          setPolygonPoints(prev => [...prev, [lat, lng]]);
         }
       });
-    });
+    }
+  }, [isModalOpen, pickerMode, formDataType]);
 
-  }, [layerData, geospatialData]); // Jalankan ulang jika data atau layer berubah
+  // Visualisasi Gambar Polygon saat input manual
+  useEffect(() => {
+    if (!pickerLayerGroupRef.current) return;
+    const lg = pickerLayerGroupRef.current;
+    if (formDataType !== 'point') {
+      lg.clearLayers();
+      polygonPoints.forEach(pt => L.circleMarker(pt, { radius: 4, color: 'blue' }).addTo(lg));
+      if (polygonPoints.length > 1) {
+        if (formDataType === 'boundary') L.polygon(polygonPoints, { color: 'blue' }).addTo(lg);
+        else L.polyline(polygonPoints, { color: 'blue' }).addTo(lg);
+      }
+    }
+  }, [polygonPoints, formDataType]);
 
-
-  // 3. Fungsi CRUD
+  // --- HANDLERS ---
   const handleOpenModal = (type, item = null) => {
     setModalType(type);
     setCurrentItem(item);
+    // Reset Form
+    setPickerMode('upload');
+    setUploadedGeoJson(null);
+    setUploadedFileName('');
+    setManualLat('');
+    setManualLng('');
+    setPolygonPoints([]);
+    
+    if (item) {
+      setFormDataName(item.name);
+      setFormDataType(item.type || 'point');
+    } else {
+      setFormDataName('');
+      setFormDataType('point');
+    }
     setIsModalOpen(true);
   };
 
-  const handleDelete = (type, id) => {
-    // TODO: Panggil API Delete
-    if (type === 'geo') {
-      setGeospatialData(geospatialData.filter(item => item.id !== id));
-      console.log('Delete Geospatial:', id);
-    } else if (type === 'layer') {
-      setLayerData(layerData.filter(item => item.id !== id));
-      console.log('Delete Layer:', id);
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      setUploadedGeoJson(json);
+      setUploadedFileName(file.name);
+    } catch (err) {
+      alert("File tidak valid. Pastikan format .geojson atau .json");
     }
+  };
+
+  const handleResetPolygon = () => setPolygonPoints([]);
+  const handleUndoPolygon = () => setPolygonPoints(prev => prev.slice(0, -1));
+
+  const handleDelete = (type, id) => {
+    if (window.confirm("Hapus data ini?")) {
+      if (type === 'geo') {
+        setGeospatialData(geospatialData.filter(item => item.id !== id));
+        setLayerData(layerData.filter(l => l.geoId !== id)); // Cascade delete
+      } else if (type === 'layer') {
+        setLayerData(layerData.filter(item => item.id !== id));
+      }
+    }
+  };
+
+  const handleToggleLayer = (id, checked) => {
+    setLayerData(prev => prev.map(l => l.id === id ? { ...l, isVisible: checked } : l));
   };
   
   const handleFormSubmit = (e) => {
@@ -197,147 +280,208 @@ export default function PetaTematikDesa() {
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
     
-    // TODO: Panggil API Create/Update
-    console.log('Form Submit:', modalType, data);
-    
-    // Logika CRUD 
     if (modalType === 'addGeo') {
-      setGeospatialData([...geospatialData, { id: `geo${Date.now()}`, ...data }]);
-    } else if (modalType === 'editGeo') {
-      setGeospatialData(geospatialData.map(item => item.id === currentItem.id ? { ...item, ...data } : item));
+      let finalGeometry = null;
+      let sourceName = 'Manual Input';
+
+      // Logika Pembentukan JSON Geometry
+      if (pickerMode === 'upload') {
+        if (!uploadedGeoJson) { alert("Upload file dulu!"); return; }
+        finalGeometry = uploadedGeoJson;
+        sourceName = uploadedFileName;
+      } else {
+        // Build GeoJSON dari Input Manual
+        if (formDataType === 'point') {
+           if(!manualLat || !manualLng) { alert("Koordinat belum lengkap!"); return; }
+           finalGeometry = {
+             type: "FeatureCollection",
+             features: [{
+               type: "Feature",
+               properties: { name: formDataName },
+               geometry: { type: "Point", coordinates: [parseFloat(manualLng), parseFloat(manualLat)] }
+             }]
+           };
+        } else {
+           if(polygonPoints.length < 3) { alert("Minimal 3 titik untuk area!"); return; }
+           const coordinates = polygonPoints.map(pt => [pt[1], pt[0]]); // Flip LatLng to LngLat for GeoJSON
+           if (formDataType === 'boundary') coordinates.push(coordinates[0]); // Close loop
+           
+           finalGeometry = {
+             type: "FeatureCollection",
+             features: [{
+               type: "Feature",
+               properties: { name: formDataName },
+               geometry: { 
+                 type: formDataType === 'boundary' ? "Polygon" : "LineString", 
+                 coordinates: formDataType === 'boundary' ? [coordinates] : coordinates 
+               }
+             }]
+           };
+        }
+      }
+      
+      // Simpan ke State (Nanti diganti POST ke API)
+      const newGeo = { 
+        id: Date.now(), 
+        name: formDataName, 
+        type: formDataType, 
+        geometry: finalGeometry, // Ini yang akan dikirim ke backend
+        source: sourceName 
+      };
+      setGeospatialData([...geospatialData, newGeo]);
+
     } else if (modalType === 'addLayer') {
-      setLayerData([...layerData, { id: `layer${Date.now()}`, ...data }]);
-    } else if (modalType === 'editLayer') {
-      setLayerData(layerData.map(item => item.id === currentItem.id ? { ...item, ...data } : item));
+      setLayerData([...layerData, { 
+        id: Date.now(), 
+        name: data.name, 
+        geoId: parseInt(data.geoId), 
+        color: data.color, 
+        isVisible: true 
+      }]);
     }
-    
     setIsModalOpen(false); 
   };
 
-  // 4. Render Komponen Modal (Dinamis)
+  // --- RENDER CONTENT ---
   const renderModalContent = () => {
-    let title = '';
-    let content = null;
-    
     if (modalType === 'addGeo' || modalType === 'editGeo') {
-      title = modalType === 'addGeo' ? 'Tambah Data Geospatial' : 'Edit Data Geospatial';
-      content = (
+      return (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nama Data</Label>
-            <Input id="name" name="name" defaultValue={currentItem?.name} placeholder="Contoh: Batas Wilayah Desa" required />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nama Data</Label>
+              <Input value={formDataName} onChange={(e) => setFormDataName(e.target.value)} placeholder="Contoh: Kantor Desa" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipe Geometri</Label>
+              <Select value={formDataType} onValueChange={setFormDataType} disabled={modalType === 'editGeo'}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="point">Titik Lokasi (Point)</SelectItem>
+                  <SelectItem value="boundary">Area / Wilayah (Polygon)</SelectItem>
+                  <SelectItem value="line">Jalur / Jalan (Line)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="type">Tipe</Label>
-            <Input id="type" name="type" defaultValue={currentItem?.type} placeholder="Contoh: Polygon, Point" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="source">Sumber (Nama File di /public)</Label>
-            <Input id="source" name="source" defaultValue={currentItem?.source} placeholder="Contoh: data.geojson" required />
-          </div>
+
+          {modalType === 'addGeo' && (
+            <Tabs value={pickerMode} onValueChange={setPickerMode} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload"><FileJson className="w-4 h-4 mr-2"/> Upload File</TabsTrigger>
+                <TabsTrigger value="manual"><MapPin className="w-4 h-4 mr-2"/> Gambar di Peta</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="upload" className="pt-4 space-y-4">
+                 <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center bg-slate-50">
+                    <Input type="file" accept=".geojson,.json" onChange={handleFileChange} className="hidden" id="file-upload" />
+                    <Label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                      <div className="bg-blue-100 p-3 rounded-full mb-2"><FileJson className="h-6 w-6 text-blue-600" /></div>
+                      <span className="text-sm font-medium text-slate-700">Klik untuk upload file .geojson</span>
+                      <span className="text-xs text-slate-500 mt-1">{uploadedFileName || "Belum ada file dipilih"}</span>
+                    </Label>
+                 </div>
+              </TabsContent>
+
+              <TabsContent value="manual" className="pt-2 space-y-4">
+                <div className="bg-blue-50 p-3 rounded-md text-xs text-blue-800 flex items-start gap-2">
+                   <PenTool className="w-4 h-4 mt-0.5 shrink-0"/>
+                   {formDataType === 'point' 
+                     ? "Klik di peta untuk titik lokasi, atau isi koordinat manual."
+                     : "Klik di peta berulang kali untuk membentuk area."}
+                </div>
+
+                {formDataType === 'point' && (
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1"><Label className="text-xs">Lat</Label><Input value={manualLat} onChange={(e) => setManualLat(e.target.value)} placeholder="-2.xxxxx" /></div>
+                     <div className="space-y-1"><Label className="text-xs">Lng</Label><Input value={manualLng} onChange={(e) => setManualLng(e.target.value)} placeholder="119.xxxxx" /></div>
+                  </div>
+                )}
+
+                {formDataType !== 'point' && (
+                   <div className="flex gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={handleUndoPolygon} disabled={polygonPoints.length === 0}><Undo className="w-3 h-3 mr-1"/> Undo</Button>
+                      <Button type="button" size="sm" variant="destructive" onClick={handleResetPolygon} disabled={polygonPoints.length === 0}><X className="w-3 h-3 mr-1"/> Reset</Button>
+                      <span className="text-xs text-slate-500 self-center ml-auto">{polygonPoints.length} Titik</span>
+                   </div>
+                )}
+
+                <div className="h-[300px] w-full rounded-md border overflow-hidden relative">
+                   <div id="pickerMap" className="h-full w-full z-0"></div>
+                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-[400] opacity-20">
+                      <div className="w-4 h-4 border-l-2 border-t-2 border-black"></div>
+                   </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       );
-    } else if (modalType === 'addLayer' || modalType === 'editLayer') {
-      title = modalType === 'addLayer' ? 'Tambah Layer Peta' : 'Edit Layer Peta';
-      content = (
+    } else if (modalType?.includes('Layer')) {
+      return (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nama Layer</Label>
-            <Input id="name" name="name" defaultValue={currentItem?.name} placeholder="Contoh: Peta Kepadatan Penduduk" required />
+            <Label>Nama Layer</Label>
+            <Input name="name" defaultValue={currentItem?.name} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="geoId">Data Geospatial</Label>
-            {/* TODO: Ganti Input ini jadi <Select> dari MOCK_GEOSPATIAL */}
-            <Input id="geoId" name="geoId" defaultValue={currentItem?.geoId} placeholder="Pilih ID Geospatial" required />
+            <Label>Sumber Data Geospatial</Label>
+            <Select name="geoId" defaultValue={currentItem?.geoId?.toString()}>
+              <SelectTrigger><SelectValue placeholder="Pilih Data" /></SelectTrigger>
+              <SelectContent>
+                {geospatialData.map((geo) => (
+                  <SelectItem key={geo.id} value={geo.id.toString()}>{geo.name} ({geo.type})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="color">Warna (HEX)</Label>
-            <Input id="color" name="color" defaultValue={currentItem?.color} placeholder="Contoh: #FF0000" required />
+            <Label>Warna (HEX)</Label>
+            <div className="flex gap-2">
+              <Input name="color" defaultValue={currentItem?.color} type="color" className="w-12 p-1 h-10" required />
+              <Input name="color_text" defaultValue={currentItem?.color} placeholder="#FF0000" className="flex-1" readOnly />
+            </div>
           </div>
         </div>
       );
     }
-
-    return (
-      <DialogContent>
-        <form onSubmit={handleFormSubmit}>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {content}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Batal</Button>
-            </DialogClose>
-            <Button type="submit">Simpan</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    );
   };
 
-
   return (
-    <div className="space-y-6">
-      
-      {/* 1. Manajemen Data */}
+    <div className="w-full space-y-6">
+      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900">Peta Tematik Desa</h2>
+          <p className="text-sm text-slate-500 mt-1">Kelola data spasial dan visualisasi peta desa Anda.</p>
+        </div>
+      </header>
+
       <Tabs defaultValue="geospatial" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="geospatial">
-            <Database className="mr-2 h-4 w-4" />
-            Data Geospatial
-          </TabsTrigger>
-          <TabsTrigger value="layer">
-            <Layers className="mr-2 h-4 w-4" />
-            Layer Peta Tematik
-          </TabsTrigger>
+          <TabsTrigger value="geospatial"><Database className="mr-2 h-4 w-4"/> Data Geospatial</TabsTrigger>
+          <TabsTrigger value="layer"><Layers className="mr-2 h-4 w-4"/> Layer Peta Tematik</TabsTrigger>
         </TabsList>
         
-        {/* TAB 1: DATA GEOSPATIAL */}
         <TabsContent value="geospatial">
           <Card>
-            <CardHeader>
-              <CardTitle>Tabel Data Geospatial</CardTitle>
-              <CardDescription>
-                Kelola sumber data mentah (file GeoJSON) untuk peta.
-              </CardDescription>
-              <Button size="sm" className="w-fit" onClick={() => handleOpenModal('addGeo')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Data Geo
-              </Button>
+            <CardHeader className="flex flex-row items-center justify-between">
+               <div><CardTitle>Tabel Data Geospatial</CardTitle><CardDescription>Data geometri mentah (JSON).</CardDescription></div>
+               <Button size="sm" onClick={() => handleOpenModal('addGeo')} className="bg-[#1C6EA4] hover:bg-[#154D71]"><Plus className="mr-2 h-4 w-4"/> Tambah Data</Button>
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Data</TableHead>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Sumber</TableHead>
-                    <TableHead className="w-[50px]">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Nama Data</TableHead><TableHead>Tipe</TableHead><TableHead>Sumber</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {geospatialData.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.type}</TableCell>
-                      <TableCell>{item.source}</TableCell>
+                      <TableCell><span className="uppercase text-xs font-bold bg-slate-100 px-2 py-1 rounded">{item.type}</span></TableCell>
+                      <TableCell className="text-sm text-slate-500">{item.source || 'Manual/API'}</TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenModal('editGeo', item)}>
-                              <Edit className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete('geo', item.id)} className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" /> Hapus
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete('geo', item.id)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4"/> Hapus</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -349,59 +493,29 @@ export default function PetaTematikDesa() {
           </Card>
         </TabsContent>
 
-        {/* TAB 2: LAYER PETA TEMATIK */}
         <TabsContent value="layer">
           <Card>
-            <CardHeader>
-              <CardTitle>Tabel Layer Peta Tematik</CardTitle>
-              <CardDescription>
-                Kelola layer yang akan ditampilkan di peta (menggunakan Data Geospatial).
-              </CardDescription>
-              <Button size="sm" className="w-fit" onClick={() => handleOpenModal('addLayer')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Layer
-              </Button>
+            <CardHeader className="flex flex-row items-center justify-between">
+               <div><CardTitle>Tabel Layer Peta</CardTitle><CardDescription>Konfigurasi visual peta.</CardDescription></div>
+               <Button size="sm" onClick={() => handleOpenModal('addLayer')} className="bg-[#1C6EA4] hover:bg-[#154D71]"><Plus className="mr-2 h-4 w-4"/> Tambah Layer</Button>
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Layer</TableHead>
-                    <TableHead>Data Geo ID</TableHead>
-                    <TableHead>Warna</TableHead>
-                    <TableHead className="w-[50px]">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Nama Layer</TableHead><TableHead>Data Sumber</TableHead><TableHead>Warna</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {layerData.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.geoId}</TableCell>
+                      <TableCell>{geospatialData.find(g => g.id === item.geoId)?.name || '-'}</TableCell>
+                      <TableCell><div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full" style={{backgroundColor: item.color}}></div>{item.color}</div></TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="h-4 w-4 rounded-full border" 
-                            style={{ backgroundColor: item.color }} 
-                          />
-                          {item.color}
-                        </div>
+                         <div className="flex items-center gap-2">
+                            <Switch checked={item.isVisible} onCheckedChange={(c) => handleToggleLayer(item.id, c)} />
+                            <span className="text-xs text-slate-500">{item.isVisible ? 'Tampil' : 'Sembunyi'}</span>
+                         </div>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenModal('editLayer', item)}>
-                              <Edit className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete('layer', item.id)} className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" /> Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                         <Button variant="ghost" size="sm" onClick={() => handleDelete('layer', item.id)} className="text-red-600"><Trash2 className="w-4 h-4"/></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -412,27 +526,30 @@ export default function PetaTematikDesa() {
         </TabsContent>
       </Tabs>
       
-      {/* 2. Preview Peta  */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Map className="h-5 w-5" />
-            Preview Peta Tematik
-          </CardTitle>
-          <CardDescription>
-            Preview peta otomatis dimuat berdasarkan data dan layer yang ada di tabel atas.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2"><MapIcon className="h-5 w-5"/> Preview Peta Tematik</CardTitle>
+          <CardDescription>Tekan tombol di bawah untuk memuat peta.</CardDescription>
         </CardHeader>
-        <CardContent>
-          {/* div untuk Leaflet */}
-          <div id="mapPreview" className="h-[400px] w-full rounded-md" />
+        <CardContent className="p-6">
+            <Button variant={showMap ? "outline" : "default"} className={`w-full mb-4 ${!showMap ? 'bg-[#1C6EA4]' : ''}`} onClick={() => setShowMap(!showMap)}>
+              {showMap ? <><EyeOff className="mr-2 h-4 w-4"/> Sembunyikan Peta</> : <><Eye className="mr-2 h-4 w-4"/> Tampilkan Peta</>}
+            </Button>
+            {showMap && <div id="mapPreview" className="h-[500px] w-full rounded-md z-0 border" />}
         </CardContent>
       </Card>
 
-
-      {/* Modal Universal untuk CRUD */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        {renderModalContent()}
+        <DialogContent className="sm:max-w-[600px]">
+          <form onSubmit={handleFormSubmit}>
+            <DialogHeader><DialogTitle>{modalType?.includes('add') ? 'Tambah' : 'Edit'} Data</DialogTitle></DialogHeader>
+            <div className="py-4">{renderModalContent()}</div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Batal</Button></DialogClose>
+              <Button type="submit" className="bg-[#1C6EA4] hover:bg-[#154D71]">Simpan</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
     </div>
   );
