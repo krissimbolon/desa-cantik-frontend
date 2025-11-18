@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
@@ -25,6 +25,17 @@ import {
   PaginationEllipsis,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Save, XCircle } from 'lucide-react';
 
 const villages = [
   { id: 1, name: 'Nonongan Selatan', visibility: 'show' },
@@ -64,12 +75,7 @@ const DaftarDesaAdmin = () => {
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">Daftar Desa</h2>
           </div>
-          <Button
-            variant="outline"
-            className="border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-white"
-          >
-            Tambah
-          </Button>
+          <VillageDialog mode="add" />
         </header>
 
         <Card className="rounded-[1.5rem] border-slate-200 shadow-lg">
@@ -115,14 +121,7 @@ const DaftarDesaAdmin = () => {
                       <VisibilityToggle value={village.visibility} />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button
-                        className={cn(
-                          buttonVariants({ variant: 'default', size: 'sm' }),
-                          'rounded-full bg-sky-200 text-slate-800 hover:bg-sky-300'
-                        )}
-                      >
-                        Edit
-                      </Button>
+                      <VillageDialog mode="edit" village={village} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -178,3 +177,88 @@ const DaftarDesaAdmin = () => {
 };
 
 export default DaftarDesaAdmin;
+
+const VillageDialog = ({ mode, village }) => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(village?.name || '');
+
+  React.useEffect(() => {
+    if (open && village) {
+      setName(village.name);
+    } else if (open && mode === 'add') {
+      setName('');
+    }
+  }, [open, village, mode]);
+
+  const title = mode === 'add' ? 'Tambah Daftar Desa' : 'Edit Daftar Desa';
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // TODO: connect with API
+    setOpen(false);
+  };
+
+  const trigger =
+    mode === 'add' ? (
+      <Button
+        variant="outline"
+        className="border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-white"
+      >
+        Tambah
+      </Button>
+    ) : (
+      <Button
+        className={cn(
+          buttonVariants({ variant: 'default', size: 'sm' }),
+          'rounded-full bg-sky-200 text-slate-800 hover:bg-sky-300'
+        )}
+      >
+        Edit
+      </Button>
+    );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-md rounded-2xl border border-slate-200 bg-white">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-lg font-semibold text-slate-800">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="grid gap-1">
+            <Label className="text-sm font-semibold text-slate-700">
+              Nama Desa
+            </Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="rounded-xl border-slate-300 focus-visible:ring-slate-300"
+              placeholder="Masukkan nama desa"
+              required
+            />
+          </div>
+          <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button
+              type="submit"
+              className="flex min-w-[120px] items-center justify-center gap-2 rounded-full bg-emerald-200 text-emerald-900 hover:bg-emerald-300"
+            >
+              <Save className="h-4 w-4" />
+              Simpan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="flex min-w-[120px] items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-100 text-rose-700 hover:bg-rose-200"
+            >
+              <XCircle className="h-4 w-4" />
+              Kembali
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

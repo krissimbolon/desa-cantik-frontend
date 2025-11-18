@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
@@ -24,6 +24,17 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Save } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { XCircle } from 'lucide-react';
 
 const villages = [
   'Nonongan Selatan',
@@ -111,12 +122,7 @@ const ModulDesaAdmin = () => {
             <div>
               <h3 className="text-2xl font-semibold text-slate-900">Edit Modul Desa</h3>
             </div>
-            <Button
-              variant="outline"
-              className="rounded-xl border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-white"
-            >
-              Tambah
-            </Button>
+          <ModuleDialog mode="add" />
           </div>
 
           <Card className="rounded-2xl border-slate-200 shadow-lg">
@@ -161,14 +167,7 @@ const ModulDesaAdmin = () => {
                       </TableCell>
                       <TableCell>{module.description}</TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          className={cn(
-                            buttonVariants({ variant: 'default', size: 'sm' }),
-                            'rounded-full bg-sky-200 text-slate-800 hover:bg-sky-300'
-                          )}
-                        >
-                          Edit
-                        </Button>
+                        <ModuleDialog mode="edit" module={module} />
                       </TableCell>
                       <TableCell className="text-center">
                         <StatusToggle value={module.visibility} />
@@ -192,3 +191,110 @@ const ModulDesaAdmin = () => {
 };
 
 export default ModulDesaAdmin;
+
+const ModuleDialog = ({ mode, module }) => {
+  const [open, setOpen] = useState(false);
+  const [formValues, setFormValues] = useState({
+    name: module?.name || '',
+    description: module?.description || '',
+  });
+
+  useEffect(() => {
+    if (open) {
+      setFormValues({
+        name: module?.name || '',
+        description: module?.description || '',
+      });
+    }
+  }, [open, module]);
+
+  const title = mode === 'add' ? 'Tambah Modul Desa' : 'Edit Modul Desa';
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // TODO: integrate with API
+    setOpen(false);
+  };
+
+  const trigger =
+    mode === 'add' ? (
+      <Button
+        variant="outline"
+        className="rounded-xl border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-white"
+      >
+        Tambah
+      </Button>
+    ) : (
+      <Button
+        className={cn(
+          buttonVariants({ variant: 'default', size: 'sm' }),
+          'rounded-full bg-sky-200 text-slate-800 hover:bg-sky-300'
+        )}
+      >
+        Edit
+      </Button>
+    );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-md rounded-2xl border border-slate-200 bg-white">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-lg font-semibold text-slate-800">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="grid gap-1">
+            <label className="text-sm font-semibold text-slate-700">Nama</label>
+            <Input
+              name="name"
+              value={formValues.name}
+              onChange={handleChange}
+              className="rounded-xl border-slate-300 focus-visible:ring-slate-300"
+              placeholder="Masukkan nama modul"
+              required
+            />
+          </div>
+          <div className="grid gap-1">
+            <label className="text-sm font-semibold text-slate-700">
+              Deskripsi
+            </label>
+            <Textarea
+              name="description"
+              value={formValues.description}
+              onChange={handleChange}
+              className="rounded-xl border-slate-300 focus-visible:ring-slate-300"
+              placeholder="Masukkan deskripsi modul"
+              rows={3}
+              required
+            />
+          </div>
+          <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button
+              type="submit"
+              className="flex min-w-[120px] items-center justify-center gap-2 rounded-full bg-emerald-200 text-emerald-900 hover:bg-emerald-300"
+            >
+              <Save className="h-4 w-4" />
+              Simpan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="flex min-w-[120px] items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-100 text-rose-700 hover:bg-rose-200"
+            >
+              <XCircle className="h-4 w-4" />
+              Kembali
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

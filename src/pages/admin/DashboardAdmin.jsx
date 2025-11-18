@@ -26,6 +26,7 @@ import {
   TrendingUp,
   RotateCcw,
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export default function DashboardAdmin() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -96,8 +97,49 @@ export default function DashboardAdmin() {
     );
   }
 
-  const { summary, recentActivities, villagesStatistics, monthlyActivities } =
-    dashboardData || {};
+  const {
+    summary,
+    recentActivities,
+    villagesStatistics,
+    monthlyActivities,
+    publicationStatus,
+    publicationCategories,
+  } = dashboardData || {};
+
+  const statusPalette = ['#34d399', '#facc15', '#fb923c', '#f87171'];
+  const categoryPalette = ['#34d399', '#60a5fa', '#f97316', '#a855f7', '#facc15'];
+
+  const publicationStatusData = (publicationStatus && publicationStatus.length
+    ? publicationStatus
+    : [
+        { status: 'Terverifikasi', count: 32 },
+        { status: 'Perlu Validasi', count: 25 },
+        { status: 'Draft', count: 12 },
+        { status: 'Batal Terbit', count: 21 },
+      ]
+  ).map((item, index) => ({
+    name: item.status || item.name,
+    value: item.count ?? item.value ?? 0,
+    color: item.color || statusPalette[index % statusPalette.length],
+  }));
+
+  const publicationCategoryData = (publicationCategories &&
+  publicationCategories.length
+    ? publicationCategories
+    : [
+        { category: 'Demografi', count: 16 },
+        { category: 'Ekonomi', count: 25 },
+        { category: 'Pertanian', count: 32 },
+        { category: 'Pendidikan', count: 15 },
+        { category: 'Kesehatan', count: 12 },
+      ]
+  ).map((item, index) => ({
+    name: item.category || item.name,
+    value: item.count ?? item.value ?? 0,
+    color: item.color || categoryPalette[index % categoryPalette.length],
+  }));
+
+  const totalStatus = publicationStatusData.reduce((sum, item) => sum + item.value, 0) || 1;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -193,6 +235,85 @@ export default function DashboardAdmin() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Publication Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Publikasi Desa</CardTitle>
+              <CardDescription>
+                Rekapitulasi publikasi desa menurut status dan kategori
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-8 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600">Status Publikasi</p>
+                    <p className="text-xs text-gray-500">
+                      Distribusi status publikasi aktif
+                    </p>
+                  </div>
+                  <div className="h-64">
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={publicationStatusData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={70}
+                          outerRadius={100}
+                          paddingAngle={2}
+                          label={({ name, value }) =>
+                            `${Math.round((value / totalStatus) * 100)}%`
+                          }
+                          labelLine={false}
+                        >
+                          {publicationStatusData.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name) => [`${value} publikasi`, name]}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600">
+                      Kategori Publikasi
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Kontribusi publikasi berdasarkan modul statistik
+                    </p>
+                  </div>
+                  <div className="h-64">
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={publicationCategoryData}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={100}
+                          paddingAngle={2}
+                        >
+                          {publicationCategoryData.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name) => [`${value} publikasi`, name]}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Villages Statistics Table */}
           <Card>

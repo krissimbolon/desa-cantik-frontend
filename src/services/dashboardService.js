@@ -15,6 +15,16 @@ const transformAdminDashboard = (data) => {
       totalPublications: data.summary?.total_publications ?? 0,
       totalThematicMaps: data.summary?.total_thematic_maps ?? 0,
     },
+    publicationStatus: (data.publication_status || []).map((item) => ({
+      status: item.status,
+      count: item.count,
+      color: item.color,
+    })),
+    publicationCategories: (data.publication_categories || []).map((item) => ({
+      category: item.category,
+      count: item.count,
+      color: item.color,
+    })),
     recentActivities: (data.recent_activities || []).map((activity) => ({
       id: activity.id,
       user: activity.user,
