@@ -101,28 +101,6 @@ export default function DashboardLayout() {
         {/* CONTENT */}
         <div className="flex-1 flex flex-col min-h-0">
           <main className="overflow-auto p-6 space-y-4">
-            
-            {/* Global Filter (Hanya untuk Admin BPS) */}
-            {isAdmin && (
-              <div className="flex justify-end">
-                <Select
-                  value={activeVillageId || undefined}
-                  onValueChange={(val) => setActiveVillageId(val)}
-                >
-                  <SelectTrigger className="w-[240px] bg-white shadow-sm border-slate-200">
-                    <SelectValue placeholder="Pilih Desa Aktif" />
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    {villages.map((village) => (
-                      <SelectItem key={village.id} value={String(village.id)}>
-                        {village.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            
             <Outlet /> 
           </main>
         </div>

@@ -319,9 +319,6 @@ export default function DashboardAdmin() {
           <Card>
             <CardHeader>
               <CardTitle>Statistik Desa</CardTitle>
-              <CardDescription>
-                Top 10 desa berdasarkan jumlah statistik
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
