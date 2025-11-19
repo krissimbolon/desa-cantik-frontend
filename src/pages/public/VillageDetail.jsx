@@ -1,15 +1,14 @@
-// src/pages/public/VillageDetail.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { 
-  MapPin, Users, FileText, Layers, CalendarDays, 
-  ArrowRight, ListFilter, Landmark, HeartPulse, Briefcase, Download, 
-  ChevronLeft, ChevronRight, Eye 
+  MapPin, Users, Layers, CalendarDays, 
+  ArrowRight, Landmark, Download, Eye 
 } from 'lucide-react';
 
+// IMPORT UI COMPONENTS (Path Relatif Manual)
 import {
   Pagination,
   PaginationContent,
@@ -17,7 +16,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination";
+} from "../../components/ui/pagination.jsx";
 
 import {
   Table,
@@ -26,31 +25,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+} from "../../components/ui/table.jsx";
+import { cn } from "../../lib/utils.js";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '../../components/ui/card.jsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.jsx';
+import { Checkbox } from '../../components/ui/checkbox.jsx';
+import { Label } from '../../components/ui/label.jsx';
+import { Button } from '../../components/ui/button.jsx';
 
-// Services
-import { villageService } from '@/services/villageService';
-import { geoService } from '@/services/geoService'; // <-- KONEK KE BACKEND (MOCK)
+// IMPORT SERVICES (Path Relatif Manual)
+import { villageService } from '../../services/villageService.js';
+import { geoService } from '../../services/geoService.js';
+import { publicationService } from '../../services/publicationService.js'; 
+import { statisticService } from '../../services/statisticService.js';
 
-import VillageDetailNavbar from '@/components/shared/VillageDetailNavbar';
-import Footer from '@/components/shared/Footer';
-
-// --- Data Dummy Publikasi & Statistik (Tetap Mock dulu karena Backend belum ready) ---
-const dummyPublications = [
-  { id: 1, title: 'Statistik Pelabuhan Perikanan 2024', date: '2025-11-07', year: '2025', month: '11', description: 'Data statistik terkini pelabuhan perikanan.', imageUrl: 'https://placehold.co/300x400/BFDBFE/1E3A8A?text=Cover+1' },
-  { id: 2, title: 'Statistik Pendaratan Ikan Tradisional 2024', date: '2025-11-07', year: '2025', month: '11', description: 'Data pendaratan ikan nelayan tradisional.', imageUrl: 'https://placehold.co/300x400/A5F3FC/0E7490?text=Cover+2' },
-  { id: 3, title: 'Benchmark Indeks Konstruksi 2023', date: '2025-10-31', year: '2025', month: '10', description: 'Analisis indeks harga konstruksi.', imageUrl: 'https://placehold.co/300x400/FDE68A/B45309?text=Cover+3' },
-  { id: 4, title: 'Cerita Data Statistik Indonesia', date: '2025-10-31', year: '2025', month: '10', description: 'Kajian pendidikan dan pekerjaan pemuda.', imageUrl: 'https://placehold.co/300x400/D1FAE5/065F46?text=Cover+4' },
-  { id: 5, title: 'Statistik Impor Bulanan', date: '2024-10-31', year: '2024', month: '10', description: 'Laporan bulanan data impor.', imageUrl: 'https://placehold.co/300x400/FECACA/991B1B?text=Cover+5' },
-  { id: 6, title: 'Direktori Industri Manufaktur', date: '2024-09-30', year: '2024', month: '9', description: 'Direktori perusahaan industri manufaktur.', imageUrl: 'https://placehold.co/300x400/E9D5FF/5B21B6?text=Cover+6' }
-];
+// IMPORT SHARED COMPONENTS
+import VillageDetailNavbar from '../../components/shared/VillageDetailNavbar.jsx';
+import Footer from '../../components/shared/Footer.jsx';
 
 const monthOptions = [
   { value: 'all', label: 'Semua Bulan' },
@@ -62,39 +54,34 @@ const monthOptions = [
   { value: '11', label: 'November' }, { value: '12', label: 'Desember' },
 ];
 
-const yearOptions = ['All', '2025', '2024', '2023'];
-
-const allTables = {
-  rt_rw: { title: 'Jumlah RT/RW', source: 'Kantor Lembang', data: { headers: ['Tahun', 'RT', 'RW'], rows: [[2024, 10, 3], [2025, 11, 3]] } },
-  aparatur: { title: 'Jumlah Aparatur', source: 'Kantor Lembang', data: { headers: ['Jabatan', 'Jumlah'], rows: [['Kepala Desa', 1], ['Sekdes', 1]] } },
-  distribusi: { title: 'Penduduk', source: 'Kantor Lembang', data: { headers: ['Indikator', 'Nilai'], rows: [['Laki-laki', 800], ['Perempuan', 780]] } },
-};
-
-const subjectGroups = [
-  { id: 'wilayah', name: 'Wilayah & Pemerintahan', icon: Landmark, tables: [{ id: 'rt_rw', title: 'RT/RW' }, { id: 'aparatur', title: 'Aparatur' }] },
-  { id: 'penduduk', name: 'Kependudukan', icon: Users, tables: [{ id: 'distribusi', title: 'Distribusi Penduduk' }] },
-];
+// Generate tahun dinamis (5 tahun terakhir)
+const currentYear = new Date().getFullYear();
+const yearOptions = ['All', ...Array.from({length: 5}, (_, i) => (currentYear - i).toString())];
 
 export default function VillageDetail() {
   const { id } = useParams();
+  
+  // State Data Utama
   const [village, setVillage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('tentang');
 
-  // --- STATE PETA DARI SERVICE ---
+  // State Peta
   const [mapData, setMapData] = useState([]); 
-  // State untuk kontrol lokal user (user bisa hide/show layer yang sudah diizinkan admin)
   const [localLayerVisibility, setLocalLayerVisibility] = useState({});
 
-  // --- State Publikasi ---
+  // State Publikasi
+  const [publications, setPublications] = useState([]);
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 4;
 
-  // --- State Statistik ---
-  const [activeSubjectId, setActiveSubjectId] = useState('wilayah');
-  const [activeTableId, setActiveTableId] = useState('rt_rw');
+  // State Statistik (Dinamis)
+  const [subjectGroups, setSubjectGroups] = useState([]);
+  const [allTables, setAllTables] = useState({});
+  const [activeSubjectId, setActiveSubjectId] = useState('');
+  const [activeTableId, setActiveTableId] = useState('');
 
   // 1. Load Data Desa
   useEffect(() => {
@@ -103,16 +90,9 @@ export default function VillageDetail() {
       try {
         setLoading(true);
         const data = await villageService.getVillageById(id);
-        setVillage(data || { 
-          name: 'Desa Contoh', 
-          district: 'Kecamatan Contoh', 
-          regency: 'Kabupaten Contoh',
-          population: 1500,
-          area: 10,
-          image: 'https://placehold.co/800x600?text=Desa+Image' 
-        });
+        setVillage(data);
       } catch (err) {
-        console.error(err);
+        console.error("Gagal memuat data desa:", err);
       } finally {
         setLoading(false);
       }
@@ -120,31 +100,43 @@ export default function VillageDetail() {
     loadData();
   }, [id]);
 
-  // 2. LOAD PETA DARI GEO SERVICE
+  // 2. Load Peta dari GeoService
   useEffect(() => {
     const loadMapData = async () => {
       if (!id) return;
       try {
-        // Ambil data layer dan geometri dari "Backend"
-        const layers = await geoService.getLayersByVillage(id);
-        const geos = await geoService.getGeospatialByVillage(id);
+        const [layers, geos] = await Promise.all([
+            geoService.getLayersByVillage(id),
+            geoService.getGeospatialByVillage(id)
+        ]);
 
-        // Gabungkan data
         const combinedData = layers.map(layer => {
-          const geo = geos.find(g => g.id === parseInt(layer.geoId));
-          return { ...layer, geometry: geo?.geometry };
-        }).filter(item => item.geometry); // Hanya tampilkan yang punya data geometri
+          // Sesuaikan field ID jika backend menggunakan geo_id atau geoId
+          const geoIdTarget = layer.geo_id || layer.geoId;
+          const geo = geos.find(g => g.id === parseInt(geoIdTarget));
+          
+          if (!geo) return null;
+          
+          // Handle GeoJSON string atau object
+          let geometryData = null;
+          if (geo.geojson) {
+              geometryData = typeof geo.geojson === 'string' ? JSON.parse(geo.geojson) : geo.geojson;
+          } else if (geo.geometry) {
+              geometryData = typeof geo.geometry === 'string' ? JSON.parse(geo.geometry) : geo.geometry;
+          }
+
+          if (!geometryData) return null;
+          
+          return { ...layer, geometry: geometryData };
+        }).filter(Boolean);
 
         setMapData(combinedData);
 
-        // Inisialisasi visibilitas lokal berdasarkan settingan Admin
         const initialVisibility = {};
         combinedData.forEach(layer => {
-          // Jika admin set true, user lihat true. Jika admin false, user lihat false.
-          initialVisibility[layer.id] = layer.isVisible; 
+          initialVisibility[layer.id] = layer.is_visible ?? layer.isVisible ?? true; 
         });
         setLocalLayerVisibility(initialVisibility);
-
       } catch (err) {
         console.error("Gagal memuat peta:", err);
       }
@@ -152,7 +144,121 @@ export default function VillageDetail() {
     loadMapData();
   }, [id]);
 
-  // 3. Scroll Spy
+  // 3. Load Publikasi
+  useEffect(() => {
+    const loadPublications = async () => {
+        if(!id) return;
+        try {
+             const data = await publicationService.getPublications(id);
+             const list = Array.isArray(data) ? data : (data.data || []);
+             
+             const formatted = list.map(item => ({
+                 id: item.id,
+                 title: item.title,
+                 subject: item.category || 'Umum',
+                 date: new Date(item.created_at).toLocaleDateString('id-ID'),
+                 year: new Date(item.created_at).getFullYear().toString(),
+                 month: (new Date(item.created_at).getMonth() + 1).toString(),
+                 description: item.description,
+                 imageUrl: item.cover_url || 'https://placehold.co/300x400/BFDBFE/1E3A8A?text=PDF',
+                 fileUrl: item.file_url
+             }));
+             setPublications(formatted);
+        } catch (err) {
+            console.error("Gagal memuat publikasi:", err);
+        }
+    };
+    loadPublications();
+  }, [id]);
+
+  // 4. Load Statistik (Transformasi Data Backend ke Struktur Tabel)
+  useEffect(() => {
+    const loadStats = async () => {
+        if (!id) return;
+        try {
+            // Ambil data statistik mentah
+            const rawStats = await statisticService.getStatisticsByVillage(id);
+            const listStats = Array.isArray(rawStats) ? rawStats : (rawStats.data || []);
+
+            // --- LOGIKA TRANSFORMASI DATA ---
+            // Kita akan mengelompokkan data berdasarkan Tipe (misal: Kependudukan)
+            // Lalu di dalam tipe, kita kelompokkan berdasarkan Judul Indikator untuk menjadi Tabel
+            
+            const groups = {}; // { 'Kependudukan': { id: 'cat-1', name: 'Kependudukan', tables: [] } }
+            const tables = {}; // { 'table-1': { title: '...', data: { headers: [], rows: [] } } }
+
+            listStats.forEach(stat => {
+                // Ambil nama kategori/tipe
+                const typeName = stat.type?.name || stat.statistic_type?.name || 'Lainnya';
+                const typeId = `subject-${typeName.replace(/\s+/g, '-').toLowerCase()}`;
+
+                // Inisialisasi Grup jika belum ada
+                if (!groups[typeId]) {
+                    groups[typeId] = {
+                        id: typeId,
+                        name: typeName,
+                        icon: Landmark, // Icon default
+                        tables: []
+                    };
+                }
+
+                // Gunakan Nama Indikator sebagai ID Tabel (misal: 'Jumlah Penduduk')
+                // Kita asumsikan satu indikator punya banyak entry tahun
+                const indicatorName = stat.name || stat.title || 'Data Statistik';
+                const tableId = `table-${typeId}-${indicatorName.replace(/\s+/g, '-').toLowerCase()}`;
+                
+                // Jika tabel belum ada di list grup, tambahkan
+                if (!groups[typeId].tables.find(t => t.id === tableId)) {
+                    groups[typeId].tables.push({ id: tableId, title: indicatorName });
+                }
+
+                // Inisialisasi Data Tabel jika belum ada
+                if (!tables[tableId]) {
+                    tables[tableId] = {
+                        title: indicatorName,
+                        source: stat.source || 'BPS / Kantor Desa',
+                        data: {
+                            headers: ['Tahun', 'Nilai', 'Satuan'],
+                            rows: []
+                        }
+                    };
+                }
+
+                // Masukkan baris data (Tahun, Nilai, Satuan)
+                tables[tableId].data.rows.push([
+                    stat.year || '-', 
+                    Number(stat.value).toLocaleString('id-ID'), 
+                    stat.unit || ''
+                ]);
+            });
+
+            // Konversi groups object ke array dan sort tabel rows berdasarkan tahun
+            const subjectGroupsArray = Object.values(groups);
+            
+            // Sort rows descending by year
+            Object.values(tables).forEach(tbl => {
+                tbl.data.rows.sort((a, b) => b[0] - a[0]);
+            });
+
+            setSubjectGroups(subjectGroupsArray);
+            setAllTables(tables);
+
+            // Set default active tab
+            if (subjectGroupsArray.length > 0) {
+                setActiveSubjectId(subjectGroupsArray[0].id);
+                if (subjectGroupsArray[0].tables.length > 0) {
+                    setActiveTableId(subjectGroupsArray[0].tables[0].id);
+                }
+            }
+
+        } catch (err) {
+            console.error("Gagal memuat statistik:", err);
+        }
+    };
+    loadStats();
+  }, [id]);
+
+  // 5. Scroll Spy
   useEffect(() => {
     const handleScroll = () => {
       const sections = ['tentang', 'data', 'publikasi', 'peta', 'dokumentasi'];
@@ -177,14 +283,14 @@ export default function VillageDetail() {
     }
   };
 
-  // Logic Filter Publikasi
+  // UI Helpers
   const filteredPublications = useMemo(() => {
-    return dummyPublications.filter(pub => {
+    return publications.filter(pub => {
       const matchYear = selectedYear === 'All' || pub.year === selectedYear;
       const matchMonth = selectedMonth === 'all' || pub.month === selectedMonth;
       return matchYear && matchMonth;
     });
-  }, [selectedYear, selectedMonth]);
+  }, [publications, selectedYear, selectedMonth]);
 
   const totalPages = Math.ceil(filteredPublications.length / ITEMS_PER_PAGE);
   const currentPublications = useMemo(() => {
@@ -194,9 +300,11 @@ export default function VillageDetail() {
 
   useEffect(() => { setCurrentPage(1); }, [selectedYear, selectedMonth]);
 
-  // Logic Statistik
-  const currentSubject = subjectGroups.find(s => s.id === activeSubjectId) || subjectGroups[0];
-  const currentTable = allTables[activeTableId] || allTables[currentSubject.tables[0].id] || { title: 'Data tidak tersedia', source: '-', data: { headers: [], rows: [] } };
+  // Helper Statistik
+  const currentSubject = subjectGroups.find(s => s.id === activeSubjectId) || (subjectGroups.length > 0 ? subjectGroups[0] : null);
+  // Fallback jika data kosong
+  const emptyTable = { title: 'Data tidak tersedia', source: '-', data: { headers: ['Info'], rows: [['Belum ada data']] } };
+  const currentTable = allTables[activeTableId] || (currentSubject && currentSubject.tables.length > 0 ? allTables[currentSubject.tables[0].id] : emptyTable) || emptyTable;
 
   const handleSubjectChange = (val) => {
     setActiveSubjectId(val);
@@ -205,28 +313,39 @@ export default function VillageDetail() {
   };
 
   const handleDownloadCSV = () => {
-    alert("Fitur download CSV akan mengunduh data: " + currentTable.title);
+    // Implementasi simpel generate CSV di client side
+    const csvContent = [
+        currentTable.data.headers.join(","),
+        ...currentTable.data.rows.map(row => row.join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${currentTable.title}.csv`;
+    link.click();
   };
 
-  // Logic Toggle Layer Lokal (User Publik)
   const handleLocalLayerToggle = (layerId) => {
     setLocalLayerVisibility(prev => ({ ...prev, [layerId]: !prev[layerId] }));
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center">Memuat...</div>;
-  if (!village) return <div className="h-screen flex items-center justify-center">Desa tidak ditemukan.</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center text-[#154D71]">Memuat data desa...</div>;
+  if (!village) return <div className="h-screen flex items-center justify-center text-red-500">Data desa tidak ditemukan.</div>;
 
+  // Generate Dokumentasi dari Gambar Desa + Cover Publikasi
   const documentationImages = [
-    village.image,
-    'https://placehold.co/800x600/67e8f9/ffffff?text=Kegiatan+1',
-    'https://placehold.co/800x600/fde047/ffffff?text=Kegiatan+2',
-    'https://placehold.co/800x600/a3e635/ffffff?text=Kegiatan+3',
-    'https://placehold.co/800x600/fca5a5/ffffff?text=Kegiatan+4',
-  ];
+    village.image_url || village.logo_url,
+    ...publications.map(p => p.imageUrl).filter(url => !url.includes('placehold'))
+  ].filter(Boolean);
+
+  // Jika kosong, pakai placeholder agar marquee tetap jalan
+  if (documentationImages.length === 0) {
+      documentationImages.push('https://placehold.co/800x600/e2e8f0/94a3b8?text=Belum+Ada+Dokumentasi');
+  }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* CSS untuk Marquee */}
       <style>
         {`
           @keyframes marquee-slow {
@@ -234,7 +353,7 @@ export default function VillageDetail() {
             100% { transform: translateX(-50%); } 
           }
           .animate-marquee-slow {
-            animation: marquee-slow 30s linear infinite; 
+            animation: marquee-slow 40s linear infinite; 
           }
         `}
       </style>
@@ -247,8 +366,11 @@ export default function VillageDetail() {
           <span className="bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm font-medium mb-4 inline-block">Profil Desa</span>
           <h1 className="text-5xl font-bold mb-4">{village.name}</h1>
           <div className="flex justify-center gap-6 text-lg">
-            <div className="flex items-center gap-2"><MapPin className="h-5 w-5"/> {village.district}</div>
-            <div className="flex items-center gap-2"><Users className="h-5 w-5"/> {village.population} Jiwa</div>
+            <div className="flex items-center gap-2"><MapPin className="h-5 w-5"/> {village.district}, {village.regency}</div>
+            {/* MENAMPILKAN JUMLAH JIWA DARI DATABASE */}
+            {village.population ? (
+                <div className="flex items-center gap-2"><Users className="h-5 w-5"/> {Number(village.population).toLocaleString('id-ID')} Jiwa</div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -256,19 +378,24 @@ export default function VillageDetail() {
       {/* TENTANG */}
       <section id="tentang" className="py-16 container mx-auto px-6">
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="rounded-2xl overflow-hidden shadow-2xl">
-            <img src={village.image} alt={village.name} className="w-full h-full object-cover" />
+          <div className="rounded-2xl overflow-hidden shadow-2xl h-[400px]">
+            <img 
+                src={village.image_url || village.logo_url || 'https://placehold.co/800x600?text=No+Image'} 
+                alt={village.name} 
+                className="w-full h-full object-cover" 
+                onError={(e) => e.target.src = 'https://placehold.co/800x600?text=Image+Error'}
+            />
           </div>
           <div>
             <h2 className="text-3xl font-bold text-[#154D71] mb-6">Tentang Desa</h2>
-            <p className="text-lg text-gray-600 leading-relaxed">
-              {village.name} adalah desa potensial di {village.district}. Memiliki luas wilayah {village.area} km² dengan kepadatan penduduk yang merata.
+            <p className="text-lg text-gray-600 leading-relaxed whitespace-pre-line">
+              {village.description || `Desa ${village.name} adalah salah satu desa binaan BPS di ${village.district}. Belum ada deskripsi detail.`}
             </p>
           </div>
         </div>
       </section>
 
-      {/* DATA STATISTIK */}
+      {/* DATA STATISTIK (REAL DATA) */}
       <section id="data" className="py-16 bg-gray-50">
         <div className="container mx-auto px-6">
           <div className="text-center mb-10">
@@ -276,65 +403,79 @@ export default function VillageDetail() {
             <div className="w-20 h-1 bg-[#33A1E0] mx-auto mt-2 rounded-full"></div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm mb-8">
-             <Label className="mb-2 block">Pilih Kategori Data</Label>
-             <Select value={activeSubjectId} onValueChange={handleSubjectChange}>
-                <SelectTrigger className="w-full md:w-[300px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {subjectGroups.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-             </Select>
-          </div>
+          {subjectGroups.length > 0 ? (
+             <>
+              <div className="bg-white p-6 rounded-xl shadow-sm mb-8">
+                 <Label className="mb-2 block">Pilih Kategori Data</Label>
+                 <Select value={activeSubjectId} onValueChange={handleSubjectChange}>
+                    <SelectTrigger className="w-full md:w-[300px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {subjectGroups.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                 </Select>
+              </div>
 
-          <div className="flex flex-col md:flex-row gap-8">
-             <div className="w-full md:w-1/4 space-y-2">
-                {currentSubject.tables.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTableId(t.id)}
-                    className={cn(
-                      "w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                      activeTableId === t.id ? "bg-[#1C6EA4] text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100"
-                    )}
-                  >
-                    {t.title}
-                  </button>
-                ))}
-             </div>
-             <div className="w-full md:w-3/4">
-               <Card className="border-0 shadow-md">
-                 <CardHeader className="bg-gray-50 border-b pb-4">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-lg text-[#154D71]">{currentTable.title}</CardTitle>
-                      <Button size="sm" variant="outline" onClick={handleDownloadCSV}><Download className="w-4 h-4 mr-2"/> CSV</Button>
-                    </div>
-                 </CardHeader>
-                 <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          {currentTable.data.headers.map((h, i) => <TableHead key={i} className="font-bold">{h}</TableHead>)}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {currentTable.data.rows.map((row, i) => (
-                          <TableRow key={i}>
-                            {row.map((cell, j) => <TableCell key={j}>{cell}</TableCell>)}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                 </CardContent>
-                 <CardFooter className="bg-gray-50 text-xs text-gray-500 py-3">
-                    Sumber: {currentTable.source}
-                 </CardFooter>
-               </Card>
-             </div>
-          </div>
+              <div className="flex flex-col md:flex-row gap-8">
+                 <div className="w-full md:w-1/4 space-y-2">
+                    {currentSubject && currentSubject.tables.map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setActiveTableId(t.id)}
+                        className={cn(
+                          "w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                          activeTableId === t.id ? "bg-[#1C6EA4] text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100"
+                        )}
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                 </div>
+                 <div className="w-full md:w-3/4">
+                   <Card className="border-0 shadow-md">
+                     <CardHeader className="bg-gray-50 border-b pb-4">
+                        <div className="flex justify-between items-center">
+                          <CardTitle className="text-lg text-[#154D71]">{currentTable.title}</CardTitle>
+                          <Button size="sm" variant="outline" onClick={handleDownloadCSV}><Download className="w-4 h-4 mr-2"/> CSV</Button>
+                        </div>
+                     </CardHeader>
+                     <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {currentTable.data.headers.map((h, i) => <TableHead key={i} className="font-bold">{h}</TableHead>)}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {currentTable.data.rows.length > 0 ? (
+                                currentTable.data.rows.map((row, i) => (
+                                  <TableRow key={i}>
+                                    {row.map((cell, j) => <TableCell key={j}>{cell}</TableCell>)}
+                                  </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="text-center py-4 text-gray-500">Belum ada data untuk indikator ini.</TableCell>
+                                </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                     </CardContent>
+                     <CardFooter className="bg-gray-50 text-xs text-gray-500 py-3">
+                        Sumber: {currentTable.source}
+                     </CardFooter>
+                   </Card>
+                 </div>
+              </div>
+             </>
+          ) : (
+              <div className="text-center py-10 text-gray-500 bg-white rounded-xl shadow-sm">
+                  <p>Belum ada data statistik yang diinput untuk desa ini.</p>
+              </div>
+          )}
         </div>
       </section>
 
-      {/* PUBLIKASI */}
+      {/* PUBLIKASI (REAL DATA) */}
       <section id="publikasi" className="py-16 container mx-auto px-6">
          <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-[#154D71]">Publikasi Desa</h2>
@@ -370,7 +511,12 @@ export default function VillageDetail() {
               {currentPublications.map(pub => (
                 <Card key={pub.id} className="flex overflow-hidden hover:shadow-lg transition-shadow border-0 bg-gray-50">
                   <div className="w-32 bg-gray-200 shrink-0">
-                    <img src={pub.imageUrl} alt={pub.title} className="w-full h-full object-cover" />
+                    <img 
+                        src={pub.imageUrl} 
+                        alt={pub.title} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => e.target.src = 'https://placehold.co/300x400/BFDBFE/1E3A8A?text=No+Cover'}
+                    />
                   </div>
                   <div className="p-5 flex flex-col justify-between w-full">
                     <div>
@@ -378,15 +524,19 @@ export default function VillageDetail() {
                       <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><CalendarDays className="w-3 h-3"/> {pub.date}</p>
                       <p className="text-sm text-gray-600 line-clamp-2">{pub.description}</p>
                     </div>
-                    <Button size="sm" variant="link" className="px-0 text-[#33A1E0] self-start mt-2">
-                      Baca Selengkapnya <ArrowRight className="w-4 h-4 ml-1"/>
-                    </Button>
+                    {pub.fileUrl && (
+                        <Button asChild size="sm" variant="link" className="px-0 text-[#33A1E0] self-start mt-2">
+                            <a href={pub.fileUrl} target="_blank" rel="noreferrer">
+                                Baca Selengkapnya <ArrowRight className="w-4 h-4 ml-1"/>
+                            </a>
+                        </Button>
+                    )}
                   </div>
                 </Card>
               ))}
            </div>
          ) : (
-           <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl">Tidak ada publikasi ditemukan.</div>
+           <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl">Tidak ada publikasi ditemukan untuk filter ini.</div>
          )}
 
          {totalPages > 1 && (
@@ -420,7 +570,7 @@ export default function VillageDetail() {
          )}
       </section>
 
-      {/* PETA TEMATIK (TERKONEKSI) */}
+      {/* PETA TEMATIK (REAL DATA) */}
       <section id="peta" className="py-16 bg-gray-50">
         <div className="container mx-auto px-6">
           <div className="text-center mb-10">
@@ -444,10 +594,8 @@ export default function VillageDetail() {
                     <div key={layer.id} className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-gray-50 transition-colors">
                       <Checkbox 
                         id={`pub-layer-${layer.id}`} 
-                        checked={localLayerVisibility[layer.id] ?? false} // Default ambil dari state local
+                        checked={localLayerVisibility[layer.id] ?? false} 
                         onCheckedChange={() => handleLocalLayerToggle(layer.id)}
-                        // Jika admin set hidden (isVisible=false di backend), checkbox ini tetap bisa di-toggle user 
-                        // TAPI initial statenya tadi sudah kita ambil dari admin.
                       />
                       <div className="grid gap-1.5 leading-none cursor-pointer">
                          <label 
@@ -475,7 +623,6 @@ export default function VillageDetail() {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 {mapData.map(layer => (
-                   // Render HANYA jika localVisibility bernilai true
                    localLayerVisibility[layer.id] && layer.geometry && (
                     <GeoJSON 
                       key={layer.id} 
@@ -498,32 +645,37 @@ export default function VillageDetail() {
         </div>
       </section>
 
-      {/* DOKUMENTASI (MARQUEE STYLE - KEMBALI KE AWAL) */}
+      {/* DOKUMENTASI (GENERATED DARI GAMBAR YANG ADA) */}
       <section id="dokumentasi" className="py-16 container mx-auto px-6">
         <div className="text-center mb-10">
            <h2 className="text-3xl font-bold text-[#154D71]">Dokumentasi</h2>
            <div className="w-20 h-1 bg-[#33A1E0] mx-auto mt-2 rounded-full"></div>
         </div>
         
-        <div className="group w-full overflow-hidden rounded-xl border bg-white shadow-sm">
-          <div className="flex animate-marquee-slow [animation-play-state:running] group-hover:[animation-play-state:paused]">
-            {/* Duplikasi array untuk efek infinite loop yang mulus */}
-            {[...documentationImages, ...documentationImages].map((img, index) => (
-              <div key={index} className="flex-shrink-0 w-full md:w-1/3 p-2">
-                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative group/item cursor-pointer">
-                  <img
-                    src={img}
-                    alt={`Dokumentasi ${index + 1}`}
-                    className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/20 transition-colors flex items-center justify-center">
-                     <Eye className="text-white opacity-0 group-hover/item:opacity-100 transition-opacity w-8 h-8 drop-shadow-lg" />
+        {documentationImages.length > 0 ? (
+            <div className="group w-full overflow-hidden rounded-xl border bg-white shadow-sm">
+              <div className="flex animate-marquee-slow [animation-play-state:running] group-hover:[animation-play-state:paused]">
+                {/* Duplikasi array agar marquee terlihat endless */}
+                {[...documentationImages, ...documentationImages].map((img, index) => (
+                  <div key={index} className="flex-shrink-0 w-full md:w-1/3 p-2">
+                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden relative group/item cursor-pointer">
+                      <img
+                        src={img}
+                        alt={`Dokumentasi ${index + 1}`}
+                        className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
+                        onError={(e) => e.target.src = 'https://placehold.co/800x600?text=Image'}
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/20 transition-colors flex items-center justify-center">
+                         <Eye className="text-white opacity-0 group-hover/item:opacity-100 transition-opacity w-8 h-8 drop-shadow-lg" />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+        ) : (
+            <div className="text-center text-gray-400 italic py-8">Belum ada dokumentasi kegiatan.</div>
+        )}
       </section>
 
       <Footer />

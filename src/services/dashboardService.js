@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { apiClient } from "./apiClient.js";
 
 /**
  * Transform snake_case backend response to camelCase for React

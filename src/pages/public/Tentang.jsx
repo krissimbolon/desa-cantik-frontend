@@ -1,4 +1,3 @@
-// src/pages/public/Tentang.jsx
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,25 +7,14 @@ import { Download, Users, Target, TrendingUp, Shield } from 'lucide-react';
 import Navbar from '@/components/shared/Navbar';
 import Footer from '@/components/shared/Footer';
 
-// --- MOCK DATA SERVICE (Simulasi) ---
-// Nanti bisa diganti dengan call ke API dashboard/public
-const fetchGlobalStats = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { icon: Users, label: 'Desa Binaan', value: '150+' },
-        { icon: Target, label: 'Program Aktif', value: '45+' },
-        { icon: TrendingUp, label: 'Peningkatan Data', value: '85%' },
-        { icon: Shield, label: 'Kualitas Data', value: 'A+' },
-      ]);
-    }, 800);
-  });
-};
+// Impor service untuk mengambil data dari backend
+import { dashboardService } from '@/services/dashboardService';
 
 const Tentang = () => {
   const [stats, setStats] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
+  // Data statis untuk pengelola program (bisa diganti dengan data dari backend jika tersedia)
   const pengelola = [
     { name: 'Pengelola 1', role: 'Koordinator Program' },
     { name: 'Pengelola 2', role: 'Fasilitator Lapangan' },
@@ -37,18 +25,52 @@ const Tentang = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Load Data Statistik saat komponen dimuat
+  // Load Data Statistik dari Backend
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const data = await fetchGlobalStats();
-        setStats(data);
+        setLoadingStats(true);
+        const data = await dashboardService.getPublicDashboard();
+
+        // Transform data dari backend agar sesuai dengan struktur tampilan
+        const transformedStats = [
+          { 
+            icon: Users, 
+            label: 'Desa Binaan', 
+            value: `${data.summary?.totalVillages || 0}+` 
+          },
+          { 
+            icon: Target, 
+            label: 'Publikasi', 
+            value: `${data.summary?.totalPublications || 0}+` 
+          },
+          { 
+            icon: TrendingUp, 
+            label: 'Data Statistik', 
+            value: `${data.summary?.totalStatistics || 0}` 
+          },
+          { 
+            icon: Shield, 
+            label: 'Update Terakhir', 
+            value: data.summary?.lastUpdate ? new Date(data.summary.lastUpdate).toLocaleDateString('id-ID') : '-' 
+          },
+        ];
+        
+        setStats(transformedStats);
       } catch (error) {
-        console.error("Gagal memuat statistik", error);
+        console.error("Gagal memuat statistik:", error);
+        // Fallback jika gagal load
+        setStats([
+          { icon: Users, label: 'Desa Binaan', value: '-' },
+          { icon: Target, label: 'Publikasi', value: '-' },
+          { icon: TrendingUp, label: 'Data Statistik', value: '-' },
+          { icon: Shield, label: 'Update Terakhir', value: '-' },
+        ]);
       } finally {
         setLoadingStats(false);
       }
     };
+
     loadStats();
   }, []);
 
@@ -114,7 +136,7 @@ const Tentang = () => {
             </div>
           </div>
 
-          {/* Stats Section (Sekarang Dinamis) */}
+          {/* Stats Section (Dinamis dari Backend) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
             {loadingStats ? (
                // Skeleton Loading Sederhana
@@ -249,6 +271,8 @@ const Tentang = () => {
                   <Button 
                     className="bg-[#1C6EA4] hover:bg-[#154D71] text-white text-lg px-10 py-6 shadow-lg hover:shadow-xl transition-all"
                     size="lg"
+                    // Ganti onClick ini dengan fungsi download jika URL SK tersedia di backend
+                    onClick={() => alert("Fitur download SK belum tersedia.")}
                   >
                     <Download className="mr-2 h-5 w-5" />
                     Download Surat Keputusan

@@ -1,6 +1,8 @@
-// src/pages/admin/ProfilUmumDesa.jsx
+import { useState, useEffect, useCallback } from 'react';
+// Gunakan alias @ sesuai konfigurasi vite.config.js
+import { useAuth } from '@/contexts/AuthContext';
+import { villageProfileService } from '@/services/villageProfileService';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,171 +20,271 @@ import { Label } from '@/components/ui/label';
 import { Edit, Save } from 'lucide-react';
 
 export default function ProfilUmumDesa() {
-// 1. State utama untuk data profil desa
+  // Ambil activeVillageId langsung dari context
+  const { user, activeVillageId } = useAuth(); 
+  
+  const villageId = activeVillageId;
+
   const [profile, setProfile] = useState({
-    name: 'Lembang Nonongan Selatan',
-    description: 'Lembang Nonongan Selatan merupakan terletak di Kecamatan Sopai, Kabupaten Toraja Utara. Desa ini juga memiliki julukan sebagai Desa Wisata. Lembang Nonongan Selatan berjarak sekitar 5 (lima) kilometer dari Kota Kabupaten. Desa Wisata Nonongan Selatan adalah desa wisata berbasis Budaya dan Alam. Desa Wisata ini masuk ke dalam 50 desa wisata terbaik yang memiliki daya tarik wisata sehingga dapat menjadi destinasi unggulan.',
-    imageUrl: 'https://placehold.co/800x450/67e8f9/1C6EA4?text=Foto+Desa'
+    name: '',
+    description: '',
+    imageUrl: '' 
   });
 
-  // 2. State terpisah untuk form (tanpa gambar)
+  // State untuk Form Edit
   const [formState, setFormState] = useState({
-    name: profile.name,
-    description: profile.description,
+    name: '',
+    description: '',
   });
   
-  // 3. State baru untuk file gambar yang dipilih di form
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   
-  // 4. State baru untuk URL pratinjau gambar
-  const [previewUrl, setPreviewUrl] = useState(profile.imageUrl);
-
-  // 5. State untuk mengontrol visibilitas dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
-// 6. Handler untuk membuka dialog dan menyinkronkan data form
+  // Fungsi load data dipisahkan agar bisa dipanggil ulang setelah edit
+  const loadProfile = useCallback(async () => {
+    if (!villageId) {
+      setIsFetching(false);
+      return;
+    }
+
+    try {
+      setIsFetching(true);
+      // Tambahkan timestamp agar browser tidak cache request ini (opsional tapi aman)
+      const data = await villageProfileService.getProfile(villageId);
+      
+      const villageData = data.data || data; 
+
+      const currentProfile = {
+          name: villageData.name || '',
+          description: villageData.description || '', 
+          // Gunakan null jika string kosong agar mudah dicek di JSX
+          imageUrl: villageData.logo_url || villageData.image_url || null
+      };
+      setProfile(currentProfile);
+      
+      // Update juga form state agar sinkron saat dialog dibuka pertama kali
+      setFormState({
+          name: villageData.name || '',
+          description: villageData.description || ''
+      });
+
+    } catch (err) {
+      console.error("Gagal memuat profil:", err);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [villageId]);
+
+  // 1. LOAD DATA PROFIL SAAT MOUNT ATAU ID BERUBAH
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  // 2. BUKA DIALOG EDIT
   const handleOpenEdit = () => {
-    // Salin data teks profil saat ini ke dalam form
+    // Selalu reset form state ke data profile terbaru saat dialog dibuka
     setFormState({
       name: profile.name,
       description: profile.description,
     });
-    // Atur pratinjau ke gambar profil saat ini
-    setPreviewUrl(profile.imageUrl);
-    // Hapus file yang mungkin dipilih sebelumnya
+    setPreviewUrl(profile.imageUrl || '');
     setSelectedFile(null);
     setIsDialogOpen(true);
   };
 
-  // 7. Handler untuk perubahan input TEKS
+  // 3. HANDLER INPUT TEKS
   const handleTextChange = (e) => {
     const { name, value } = e.target;
-    setFormState(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormState(prev => ({ ...prev, [name]: value }));
   };
 
-  // 8. Handler untuk perubahan input FILE
+  // 4. HANDLER INPUT FILE GAMBAR
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      // Buat URL pratinjau lokal untuk file yang baru dipilih
-      setPreviewUrl(URL.createObjectURL(file));
+      setPreviewUrl(URL.createObjectURL(file)); 
     }
   };
 
-  // 9. Handler untuk menyimpan perubahan dari dialog
-  const handleSubmit = () => {
-    // Terapkan perubahan dari form ke profil utama
-    setProfile({
-      name: formState.name,
-      description: formState.description,
-      imageUrl: previewUrl, // Gunakan URL pratinjau sebagai URL gambar baru
-    });
-    // Tutup dialog
-    setIsDialogOpen(false);
+  // 5. SUBMIT KE BACKEND
+  const handleSubmit = async () => {
+    if (!villageId) {
+        alert("Error: ID Desa tidak ditemukan. Pastikan Anda sudah login.");
+        return;
+    }
+
+    try {
+      setIsLoading(true);
+      const formData = new FormData();
+      formData.append('name', formState.name);
+      formData.append('description', formState.description);
+      
+      // Backend Laravel butuh _method: PUT jika mengirim file via POST
+      formData.append('_method', 'PUT');
+
+      if (selectedFile) {
+        formData.append('logo', selectedFile); 
+      }
+
+      // Kirim ke Backend
+      const response = await villageProfileService.updateProfile(villageId, formData);
+      
+      // OPTION A: Update state lokal langsung dari response (Cepat)
+      const updatedData = response.data || response;
+      setProfile({
+        name: updatedData.name || formState.name,
+        description: updatedData.description || formState.description,
+        imageUrl: updatedData.logo_url || updatedData.image_url || previewUrl 
+      });
+
+      // OPTION B: Fetch ulang data dari server untuk memastikan sinkronisasi (Lebih aman)
+      // await loadProfile(); 
+
+      setIsDialogOpen(false);
+      alert("Profil berhasil diperbarui!");
+
+    } catch (error) {
+      console.error("Gagal update:", error);
+      alert("Gagal memperbarui profil. " + (error.message || "Terjadi kesalahan."));
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Tampilan Loading Awal
+  if (isFetching) {
+    return <div className="flex h-screen items-center justify-center text-gray-500">Memuat data profil...</div>;
+  }
+
+  // RENDER ERROR JIKA VILLAGE ID TETAP NULL
+  if (!villageId) {
+     return (
+        <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 p-8">
+            <div className="text-red-500 text-5xl">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800">Data Desa Tidak Ditemukan</h2>
+            <p className="text-gray-600 text-center max-w-md">
+              Akun Anda (<strong>{user?.name || 'User'}</strong>) tidak terhubung dengan data desa manapun.
+              <br/>
+              <span className="text-xs text-gray-400 mt-2 block">Active Village ID: null</span>
+            </p>
+            <Button onClick={() => window.location.href = '/login'} variant="outline">
+               Login Kembali
+            </Button>
+        </div>
+     );
+  }
 
   return (
     <div className="p-8 space-y-6 max-w-4xl mx-auto">
-      {/* Tampilan Gambar */}
-      <div className="w-full h-64 md:h-80 rounded-lg overflow-hidden shadow-lg">
-        <img
-          src={profile.imageUrl}
-          alt={profile.name}
-          className="w-full h-full object-cover"
-        />
+      {/* Tampilan Gambar Utama */}
+      <div className="w-full h-64 md:h-80 rounded-lg overflow-hidden shadow-lg bg-gray-200 flex items-center justify-center relative group">
+        {profile.imageUrl ? (
+            <img
+              src={profile.imageUrl}
+              alt={profile.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                  e.target.onerror = null; 
+                  e.target.src = 'https://placehold.co/800x450?text=Gagal+Muat+Gambar';
+              }}
+            />
+        ) : (
+            <div className="text-center text-gray-500">
+                <p>Tidak ada foto profil</p>
+            </div>
+        )}
       </div>
 
-      {/* Tampilan Konten (Card) */}
+      {/* Kartu Konten */}
       <Card className="shadow-lg border-t-4 border-[#1C6EA4]">
         <CardHeader>
           <CardTitle className="text-4xl font-bold text-gray-900">
-            {profile.name}
+            {profile.name || 'Nama Desa Belum Diatur'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-lg text-gray-700 leading-relaxed">
-            {profile.description}
-          </p>
+          {profile.description ? (
+            <p className="text-lg text-gray-700 leading-relaxed whitespace-pre-line">
+              {profile.description}
+            </p>
+          ) : (
+            <p className="text-gray-400 italic">Belum ada deskripsi desa.</p>
+          )}
         </CardContent>
       </Card>
 
-      {/* Tombol Aksi */}
+      {/* Tombol Edit */}
       <div className="flex justify-end gap-4">
-        {/* Tombol "Edit" ini akan memicu Dialog */}
-        <Button onClick={handleOpenEdit} className="bg-[#1C6EA4] hover:bg-[#154D71]">
+        <Button onClick={handleOpenEdit} className="bg-[#1C6EA4] hover:bg-[#154D71]" disabled={isLoading}>
           <Edit className="mr-2 h-4 w-4" />
-          Edit
+          Edit Profil
         </Button>
       </div>
 
-      {/* --- Dialog Form Edit --- */}
+      {/* Dialog Form */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Edit Profil Umum Desa</DialogTitle>
             <DialogDescription>
-              Perbarui informasi desa Anda. Klik simpan jika sudah selesai.
+              Perbarui informasi desa Anda di bawah ini.
             </DialogDescription>
           </DialogHeader>
           
-          {/* Form di dalam Dialog */}
           <div className="grid gap-6 py-4">
-            
-            {/* Pratinjau Gambar */}
+            {/* Preview Gambar di Form */}
             <div className="space-y-2">
-              <Label>Pratinjau Gambar</Label>
-              <div className="w-full h-40 rounded-md overflow-hidden bg-gray-100">
-                <img
-                  src={previewUrl}
-                  alt="Pratinjau"
-                  className="w-full h-full object-cover"
-                />
+              <Label>Pratinjau Foto</Label>
+              <div className="w-full h-40 rounded-md overflow-hidden bg-gray-100 border flex items-center justify-center">
+                {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Pratinjau"
+                      className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <span className="text-gray-400 text-sm">Belum ada gambar</span>
+                )}
               </div>
             </div>
 
-            {/* Input Ganti Gambar (File Upload) */}
+            {/* Input File */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="imageFile" className="text-right">
-                Gambar
-              </Label>
+              <Label htmlFor="imageFile" className="text-right">Ganti Foto</Label>
               <Input
                 id="imageFile"
-                name="imageFile"
                 type="file"
-                accept="image/png, image/jpeg, image/webp" // Opsi: batasi tipe file
-                onChange={handleFileChange} // Gunakan handler file baru
-                className="col-span-3"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="col-span-3 cursor-pointer"
               />
             </div>
 
-            {/* Input Nama Desa */}
+            {/* Input Nama */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Nama Desa
-              </Label>
+              <Label htmlFor="name" className="text-right">Nama Desa</Label>
               <Input
                 id="name"
                 name="name"
                 value={formState.name}
-                onChange={handleTextChange} // Gunakan handler teks baru
+                onChange={handleTextChange}
                 className="col-span-3"
               />
             </div>
             
             {/* Input Deskripsi */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Deskripsi
-              </Label>
+              <Label htmlFor="description" className="text-right">Deskripsi</Label>
               <Textarea
                 id="description"
                 name="description"
                 value={formState.description}
-                onChange={handleTextChange} // Gunakan handler teks baru
+                onChange={handleTextChange}
                 className="col-span-3"
                 rows={8}
               />
@@ -191,11 +293,11 @@ export default function ProfilUmumDesa() {
           
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Batal</Button>
+              <Button variant="outline" disabled={isLoading}>Batal</Button>
             </DialogClose>
-            <Button onClick={handleSubmit} className="bg-[#1C6EA4] hover:bg-[#154D71]">
+            <Button onClick={handleSubmit} className="bg-[#1C6EA4] hover:bg-[#154D71]" disabled={isLoading}>
               <Save className="mr-2 h-4 w-4" />
-              Simpan Perubahan
+              {isLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
           </DialogFooter>
         </DialogContent>
